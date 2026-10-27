@@ -12,6 +12,8 @@ export default function Admin() {
   const [activeLeague, setActiveLeague] = useState<string>('')
   const [weeks, setWeeks] = useState<any[]>([])
   const [scorecards, setScorecards] = useState<any[]>([])
+  const [admins, setAdmins] = useState<any[]>([])
+  const [newAdmin, setNewAdmin] = useState('')
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -23,9 +25,12 @@ export default function Admin() {
     if (!session) { setIsAdmin(null); return }
     supabase.from('admins').select('email').eq('email', session.user.email).maybeSingle().then(({ data }) => {
       if (data) { setIsAdmin(true); return }
-      supabase.from('admins').select('email', { count: 'exact', head: true }).then(({ count }) => {
+      supabase.from('admins').select('email', { count: 'exact', head: true }).then(({ count, error }) => {
+        if (error) { setIsAdmin(false); return }
         if ((count ?? 0) === 0) {
-          supabase.from('admins').insert({ email: session.user.email }).then(() => setIsAdmin(true))
+          supabase.from('admins').insert({ email: session.user.email }).then(({ error: ie }) => {
+            if (ie) { setIsAdmin(false) } else { setIsAdmin(true) }
+          })
         } else {
           setIsAdmin(false)
         }
@@ -53,7 +58,11 @@ export default function Admin() {
     const { data: sc } = await supabase.from('scorecards').select('*').in('round_id', roundIds).order('created_at', { ascending: false }).limit(50)
     setScorecards(sc ?? [])
   }
-  useEffect(() => { if (session && isAdmin) loadLeagues() }, [session, isAdmin])
+  const loadAdmins = async () => {
+    const { data } = await supabase.from('admins').select('email').order('email')
+    setAdmins(data ?? [])
+  }
+  useEffect(() => { if (session && isAdmin) { loadLeagues(); loadAdmins() } }, [session, isAdmin])
   useEffect(() => { if (session && isAdmin && activeLeague) load() }, [session, isAdmin, activeLeague])
 
   const login = async () => {
@@ -95,6 +104,12 @@ export default function Admin() {
   const unlock = async (id: string) => {
     await supabase.from('scorecards').update({ status: 'submitted', locked_at: null, locked_by_team_id: null }).eq('id', id)
     load()
+  }
+  const addAdmin = async () => {
+    if (!newAdmin) return
+    await supabase.from('admins').insert({ email: newAdmin })
+    setNewAdmin('')
+    loadAdmins()
   }
   const signOut = async () => { await supabase.auth.signOut() }
 
@@ -142,6 +157,12 @@ export default function Admin() {
           </li>
         ))}
       </ul>
+      <h2>Admins</h2>
+      <ul>{admins.map(a => <li key={a.email}>{a.email}</li>)}</ul>
+      <div style={{ marginTop: 8 }}>
+        <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="email to add as admin" />
+        <button onClick={addAdmin} style={{ marginLeft: 8 }}>Add admin</button>
+      </div>
     </main>
   )
 }
