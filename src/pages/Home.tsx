@@ -62,7 +62,10 @@ export default function Home() {
 
   return (
     <main>
-      <h1>mgolf league</h1>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+        <img src="/logo.svg" alt="" width={48} height={48} style={{ borderRadius: 12 }} />
+        <h1 style={{ margin: 0 }}>mgolf league</h1>
+      </div>
       <p className="muted" style={{ maxWidth: 600 }}>
         Upload a photo of a scorecard after each round. Pick your team, parse with AI, fix misread cells, then submit. Share the verify QR with another team on the card to lock it.
       </p>
