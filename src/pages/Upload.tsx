@@ -185,45 +185,50 @@ export default function Upload() {
   const verifyUrl = scorecardId && verifyToken ? `${window.location.origin}/verify/${scorecardId}?t=${verifyToken}` : null
 
   return (
-    <main style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
-      <h1>Upload scorecard — {round}</h1>
-      <label>Submitter team:
-        <select value={submitter} onChange={e => setSubmitter(e.target.value)}>
-          <option value="">select...</option>
-          {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-        </select>
-      </label>
-      <div style={{ margin: '12px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        <button onClick={startCamera}>📷 Take Photo</button>
-        <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
+    <main>
+      <h1>Upload — {round}</h1>
+
+      <label>Submitter team</label>
+      <select value={submitter} onChange={e => setSubmitter(e.target.value)}>
+        <option value="">select...</option>
+        {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+      </select>
+
+      <div className="stack-mobile" style={{ marginTop: 12 }}>
+        <button onClick={startCamera} className="primary">📷 Take Photo</button>
+        <label className="btn" style={{ margin: 0 }}>
+          📁 Choose File
+          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
+        </label>
       </div>
-      {cameraError && <p style={{ color: '#f87171' }}>{cameraError}</p>}
+      {cameraError && <p style={{ color: 'var(--error)' }}>{cameraError}</p>}
       {cameraOpen && (
-        <div style={{ margin: '12px 0' }}>
-          <video ref={videoRef} autoPlay playsInline muted style={{ maxWidth: '100%', maxHeight: 300, background: '#000' }} />
+        <div className="card">
+          <video ref={videoRef} autoPlay playsInline muted style={{ width: '100%', maxHeight: 320, background: '#000', borderRadius: 8 }} />
           <canvas ref={canvasRef} style={{ display: 'none' }} />
-          <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-            <button onClick={capturePhoto}>Capture</button>
+          <div className="row" style={{ marginTop: 8 }}>
+            <button onClick={capturePhoto} className="primary">Capture</button>
             <button onClick={stopCamera}>Cancel</button>
           </div>
         </div>
       )}
       {preview && (
-        <div>
-          <img src={preview} alt="preview" style={{ maxWidth: '100%', maxHeight: 300 }} />
-          <div style={{ marginTop: 8 }}>
+        <div className="card">
+          <img src={preview} alt="preview" className="preview-img" />
+          <div className="row" style={{ marginTop: 8 }}>
             <button onClick={rotate}>🔄 Rotate 90°</button>
           </div>
         </div>
       )}
-      <div style={{ margin: '12px 0' }}>
-        <button onClick={parse} disabled={!file || !submitter}>Parse card</button>
-      </div>
-      <p>{status}</p>
+      <button onClick={parse} disabled={!file || !submitter} className="primary" style={{ width: '100%', marginTop: 12 }}>
+        Parse card
+      </button>
+      {status && <p className="muted">{status}</p>}
+
       {parsed && (
-        <div style={{ overflowX: 'auto' }}>
-          <table border={1} cellPadding={4}>
-            <thead><tr><th>Team</th>{[1,2,3,4,5,6,7,8,9].map(h => <th key={h}>{h}</th>)}<th>TOTAL</th></tr></thead>
+        <div className="grid-scroll" style={{ marginTop: 12 }}>
+          <table>
+            <thead><tr><th>Team</th>{[1,2,3,4,5,6,7,8,9].map(h => <th key={h}>{h}</th>)}<th>Σ</th></tr></thead>
             <tbody>
               {parsed.map((r: ParsedRow, ri: number) => (
                 <tr key={ri}>
@@ -232,11 +237,11 @@ export default function Upload() {
                       {teams.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                       <option value={r.team}>{r.team}</option>
                     </select>
-                    <div style={{ fontSize: 11, color: r.confidence > 80 ? 'green' : 'orange' }}>conf {r.confidence}</div>
+                    <div className={r.confidence > 80 ? 'conf-high' : 'conf-low'}>conf {r.confidence}</div>
                   </td>
                   {r.scores.map((s: number | null, hi: number) => (
                     <td key={hi}>
-                      <input style={{ width: 36 }} value={s ?? ''} onChange={e => updateCell(ri, hi, e.target.value)} />
+                      <input value={s ?? ''} inputMode="numeric" onChange={e => updateCell(ri, hi, e.target.value)} />
                     </td>
                   ))}
                   <td style={{ fontWeight: 'bold' }}>{r.scores.reduce((a: number, b: number | null) => a + (b ?? 0), 0)}</td>
@@ -244,16 +249,16 @@ export default function Upload() {
               ))}
             </tbody>
           </table>
-          <div style={{ margin: '12px 0' }}>
-            <button onClick={submit}>Submit corrected card</button>
-          </div>
         </div>
       )}
+      {parsed && (
+        <button onClick={submit} className="primary" style={{ width: '100%', marginTop: 12 }}>Submit corrected card</button>
+      )}
       {verifyUrl && (
-        <div style={{ margin: '12px 0' }}>
-          <p>Verify URL (share with another team on this card):</p>
-          <code style={{ wordBreak: 'break-all' }}>{verifyUrl}</code>
-          <QRCodeSVG value={verifyUrl} size={180} />
+        <div className="card" style={{ textAlign: 'center' }}>
+          <p>Share this with another team on the card so they can attest and lock it:</p>
+          <QRCodeSVG value={verifyUrl} size={200} />
+          <div className="small muted" style={{ wordBreak: 'break-all', marginTop: 8 }}>{verifyUrl}</div>
         </div>
       )}
     </main>

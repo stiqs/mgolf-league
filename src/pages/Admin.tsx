@@ -129,20 +129,22 @@ export default function Admin() {
 
   if (!session) {
     return (
-      <main style={{ padding: 16 }}>
+      <main>
         <h1>Admin login</h1>
-        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" />
-        <button onClick={login}>Send magic link</button>
-        <button onClick={googleLogin} style={{ marginLeft: 8 }}>Sign in with Google</button>
+        <div className="stack" style={{ maxWidth: 360 }}>
+          <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" type="email" autoComplete="email" />
+          <button onClick={login}>Send magic link</button>
+          <button onClick={googleLogin} className="primary">Sign in with Google</button>
+        </div>
       </main>
     )
   }
   if (isAdmin === null) {
-    return <main style={{ padding: 16 }}>Checking permissions...</main>
+    return <main><p>Checking permissions...</p></main>
   }
   if (!isAdmin) {
     return (
-      <main style={{ padding: 16 }}>
+      <main>
         <h1>Not authorized</h1>
         <p>Your account ({session.user.email}) is not an admin.</p>
         <button onClick={signOut}>Sign out</button>
@@ -150,54 +152,68 @@ export default function Admin() {
     )
   }
   return (
-    <main style={{ padding: 16 }}>
+    <main>
       <h1>Admin</h1>
-      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <label>League: </label>
+
+      <div className="card">
+        <label>League</label>
         <select value={activeLeague} onChange={e => { setActiveLeague(e.target.value); setActiveSeason('') }}>
           {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <button onClick={createLeague}>Create league</button>
-        <button onClick={signOut}>Sign out</button>
+        <div className="stack-mobile" style={{ marginTop: 12 }}>
+          <button onClick={createLeague}>Create league</button>
+          <button onClick={signOut}>Sign out</button>
+        </div>
       </div>
-      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-        <label>Season: </label>
+
+      <div className="card">
+        <label>Season</label>
         <select value={activeSeason} onChange={e => setActiveSeason(e.target.value)}>
           {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <input type="date" value={seasonStart} onChange={e => setSeasonStart(e.target.value)} />
-        <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} style={{ width: 60 }} />
-        <button onClick={createSeason}>Create season</button>
+        <div className="stack-mobile" style={{ marginTop: 12 }}>
+          <input type="date" value={seasonStart} onChange={e => setSeasonStart(e.target.value)} />
+          <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} placeholder="weeks" />
+          <button onClick={createSeason} className="primary">Create season</button>
+        </div>
       </div>
+
       <h2>Weeks</h2>
-      <ul>{weeks.map(w => (
-        <li key={w.id} style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 120 }}>
+      {weeks.map(w => (
+        <div key={w.id} className="card">
+          <div className="row" style={{ justifyContent: 'space-between' }}>
             <strong>Week {w.week_no}</strong>
-            {w.game_date && <div style={{ fontSize: 12 }}>{w.game_date}</div>}
+            {w.game_date && <span className="small muted">{w.game_date}</span>}
           </div>
-          <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ minWidth: 180 }} />
-          {['aces','duffleboard','minigolf'].map(r => (
-            <div key={r} style={{ textAlign: 'center' }}>
-              <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
-              <div style={{ fontSize: 12 }}>{r}</div>
-            </div>
-          ))}
-        </li>
-      ))}</ul>
+          <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ marginTop: 8 }} />
+          <div className="chips" style={{ marginTop: 12 }}>
+            {['aces','duffleboard','minigolf'].map(r => (
+              <div key={r} style={{ textAlign: 'center' }}>
+                <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
+                <div className="small">{r}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+
       <h2>Recent scorecards</h2>
-      <ul>
+      <div className="card">
         {scorecards.map(sc => (
-          <li key={sc.id}>
-            {sc.status} — {sc.id.slice(0,8)} {sc.status === 'locked' && <button onClick={() => unlock(sc.id)}>unlock</button>}
-          </li>
+          <div key={sc.id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--surface-2)' }}>
+            <span className="small">{sc.status} — {sc.id.slice(0,8)}</span>
+            {sc.status === 'locked' && <button onClick={() => unlock(sc.id)}>unlock</button>}
+          </div>
         ))}
-      </ul>
+      </div>
+
       <h2>Admins</h2>
-      <ul>{admins.map(a => <li key={a.email}>{a.email}</li>)}</ul>
-      <div style={{ marginTop: 8 }}>
-        <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="email to add as admin" />
-        <button onClick={addAdmin} style={{ marginLeft: 8 }}>Add admin</button>
+      <div className="card">
+        {admins.map(a => <div key={a.email} className="small">{a.email}</div>)}
+        <div className="stack-mobile" style={{ marginTop: 12 }}>
+          <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="email to add as admin" type="email" />
+          <button onClick={addAdmin}>Add admin</button>
+        </div>
       </div>
     </main>
   )
