@@ -16,6 +16,7 @@ export default function Admin() {
   const [activeLeague, setActiveLeague] = useState<string>('')
   const [seasons, setSeasons] = useState<any[]>([])
   const [activeSeason, setActiveSeason] = useState<string>('')
+  const [activeWeek, setActiveWeek] = useState<string>('')
   const [weeks, setWeeks] = useState<any[]>([])
   const [scorecards, setScorecards] = useState<any[]>([])
   const [admins, setAdmins] = useState<any[]>([])
@@ -60,7 +61,9 @@ export default function Admin() {
   const load = async () => {
     if (!activeSeason) { setWeeks([]); setScorecards([]); return }
     const { data: w } = await supabase.from('weeks').select('*').eq('season_id', activeSeason).order('week_no')
-    setWeeks(w ?? [])
+    const ws = w ?? []
+    setWeeks(ws)
+    setActiveWeek(prev => ws.some(x => x.id === prev) ? prev : (ws[0]?.id ?? ''))
     const weekIds = (w ?? []).map(x => x.id)
     if (weekIds.length === 0) { setScorecards([]); return }
     const { data: rounds } = await supabase.from('mg_rounds').select('id').in('week_id', weekIds)
@@ -110,6 +113,28 @@ export default function Admin() {
     await supabase.from('weeks').insert(rows)
     await loadSeasons()
     setActiveSeason(season.id)
+  }
+  const addWeek = async () => {
+    if (!activeSeason) { alert('Select or create a season first'); return }
+    const season = seasons.find(s => s.id === activeSeason)
+    const { data: ws } = await supabase.from('weeks').select('week_no').eq('season_id', activeSeason)
+    const n = (ws && ws.length) ? Math.max(...ws.map(w => w.week_no)) + 1 : 1
+    let game_date: string | null = null
+    if (season?.start_date) {
+      const d = new Date(season.start_date + 'T00:00:00Z')
+      d.setUTCDate(d.getUTCDate() + (n - 1) * 7)
+      game_date = d.toISOString().slice(0, 10)
+    }
+    const { data: wk } = await supabase.from('weeks').insert({ season_id: activeSeason, week_no: n, game_date, theme: '' }).select('id').single()
+    if (wk) {
+      await supabase.from('mg_rounds').insert([
+        { week_id: wk.id, type: 'aces' },
+        { week_id: wk.id, type: 'duffleboard' },
+        { week_id: wk.id, type: 'minigolf' },
+      ])
+      setActiveWeek(wk.id)
+    }
+    load()
   }
   const updateTheme = async (id: string, theme: string) => {
     setWeeks(ws => ws.map(w => w.id === id ? { ...w, theme } : w))
@@ -179,23 +204,38 @@ export default function Admin() {
       </div>
 
       <h2>Weeks</h2>
-      {weeks.map(w => (
-        <div key={w.id} className="card">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <strong>Week {w.week_no}</strong>
-            {w.game_date && <span className="small muted">{w.game_date}</span>}
+      <div className="card">
+        <label htmlFor="week">Week</label>
+        <select id="week" value={activeWeek} onChange={e => setActiveWeek(e.target.value)}>
+          {weeks.length === 0 && <option value="">No weeks yet</option>}
+          {weeks.map(w => (
+            <option key={w.id} value={w.id}>Week {w.week_no}{w.theme ? ` — ${w.theme}` : ''}{w.game_date ? ` (${w.game_date})` : ''}</option>
+          ))}
+        </select>
+        <button onClick={addWeek} style={{ marginTop: 12 }}>Add week</button>
+      </div>
+
+      {(() => {
+        const w = weeks.find(x => x.id === activeWeek)
+        if (!w) return null
+        return (
+          <div className="card">
+            <div className="row" style={{ justifyContent: 'space-between' }}>
+              <strong>Week {w.week_no}</strong>
+              {w.game_date && <span className="small muted">{w.game_date}</span>}
+            </div>
+            <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ marginTop: 8 }} />
+            <div className="chips" style={{ marginTop: 12 }}>
+              {['aces','duffleboard','minigolf'].map(r => (
+                <div key={r} style={{ textAlign: 'center' }}>
+                  <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
+                  <div className="small">{r}</div>
+                </div>
+              ))}
+            </div>
           </div>
-          <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ marginTop: 8 }} />
-          <div className="chips" style={{ marginTop: 12 }}>
-            {['aces','duffleboard','minigolf'].map(r => (
-              <div key={r} style={{ textAlign: 'center' }}>
-                <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
-                <div className="small">{r}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
+        )
+      })()}
 
       <h2>Recent scorecards</h2>
       <div className="card">

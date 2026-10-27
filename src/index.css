@@ -12,6 +12,7 @@
   --tap: 44px;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-text-size-adjust: 100%;
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
