@@ -13,10 +13,26 @@ function isCurrent(s: Season, today = new Date()): boolean {
   return today >= start && today < end
 }
 
+function currentWeekId(weeks: Week[]): string {
+  const today = new Date().toISOString().slice(0, 10)
+  const withDates = weeks.filter(w => w.game_date)
+  const containing = withDates.find(w => w.game_date! <= today && today < addDays(w.game_date!, 7))
+  if (containing) return containing.id
+  const past = withDates.filter(w => w.game_date! <= today)
+  return (past[past.length - 1] ?? weeks[0])?.id ?? ''
+}
+
+function addDays(date: string, days: number): string {
+  const d = new Date(date + 'T00:00:00Z')
+  d.setUTCDate(d.getUTCDate() + days)
+  return d.toISOString().slice(0, 10)
+}
+
 export default function Home() {
   const [seasons, setSeasons] = useState<Season[]>([])
   const [weeks, setWeeks] = useState<Week[]>([])
   const [activeSeason, setActiveSeason] = useState<string>('')
+  const [activeWeek, setActiveWeek] = useState<string>('')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -33,10 +49,15 @@ export default function Home() {
     })
   }, [])
 
-  const seasonWeeks = useMemo(
-    () => weeks.filter(w => w.season_id === activeSeason),
-    [weeks, activeSeason],
-  )
+  const seasonWeeks = useMemo(() => weeks.filter(w => w.season_id === activeSeason), [weeks, activeSeason])
+
+  useEffect(() => {
+    if (seasonWeeks.length && !seasonWeeks.some(w => w.id === activeWeek)) {
+      setActiveWeek(currentWeekId(seasonWeeks))
+    }
+  }, [seasonWeeks])
+
+  const week = seasonWeeks.find(w => w.id === activeWeek)
   const active = seasons.find(s => s.id === activeSeason)
 
   return (
@@ -52,29 +73,42 @@ export default function Home() {
       {seasons.length > 0 && (
         <div className="card">
           <label htmlFor="season">Season</label>
-          <select id="season" value={activeSeason} onChange={e => setActiveSeason(e.target.value)}>
+          <select id="season" value={activeSeason} onChange={e => { setActiveSeason(e.target.value); setActiveWeek('') }}>
             {seasons.map(s => (
               <option key={s.id} value={s.id}>
                 {s.name}{isCurrent(s) ? ' (current)' : ''}
               </option>
             ))}
           </select>
+
+          {seasonWeeks.length > 0 && (
+            <>
+              <label htmlFor="week" style={{ marginTop: 12 }}>Week</label>
+              <select id="week" value={activeWeek} onChange={e => setActiveWeek(e.target.value)}>
+                {seasonWeeks.map(w => (
+                  <option key={w.id} value={w.id}>
+                    Week {w.week_no}{w.theme ? ` — ${w.theme}` : ''}{w.game_date ? ` (${w.game_date})` : ''}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
         </div>
       )}
 
-      <h2>{active ? active.name : 'Weeks'}</h2>
-      {seasonWeeks.length === 0 && <p>No weeks in this season.</p>}
-      {seasonWeeks.map(w => (
-        <div key={w.id} className="card">
-          <h3>Week {w.week_no}{w.theme ? ` — ${w.theme}` : ''}</h3>
-          {w.game_date && <div className="small muted" style={{ marginBottom: 8 }}>{w.game_date}</div>}
+      {active && <h2>{active.name}</h2>}
+      {!loading && seasonWeeks.length === 0 && <p>No weeks in this season.</p>}
+      {week && (
+        <div className="card">
+          <h3>Week {week.week_no}{week.theme ? ` — ${week.theme}` : ''}</h3>
+          {week.game_date && <div className="small muted" style={{ marginBottom: 8 }}>{week.game_date}</div>}
           <div className="chips">
             {['aces', 'duffleboard', 'minigolf'].map(r => (
-              <Link key={r} to={`/upload/${w.id}/${r}`} className="chip">{r}</Link>
+              <Link key={r} to={`/upload/${week.id}/${r}`} className="chip">{r}</Link>
             ))}
           </div>
         </div>
-      ))}
+      )}
 
       <div style={{ marginTop: 24 }}>
         <Link to="/admin" className="muted">Admin</Link>
