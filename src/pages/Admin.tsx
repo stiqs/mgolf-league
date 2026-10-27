@@ -148,7 +148,14 @@ export default function Admin() {
         <button onClick={signOut} style={{ marginLeft: 8 }}>Sign out</button>
       </div>
       <h2>Weeks</h2>
-      <ul>{weeks.map(w => <li key={w.id} style={{ display:'flex', gap:8, alignItems:'center' }}>Week {w.week_no} <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/aces`} size={80} /> <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/duffleboard`} size={80} /> <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/minigolf`} size={80} /></li>)}</ul>
+      <ul>{weeks.map(w => <li key={w.id} style={{ display:'flex', gap:16, alignItems:'center', marginBottom:12 }}>Week {w.week_no}
+        {['aces','duffleboard','minigolf'].map(r => (
+          <div key={r} style={{ textAlign:'center' }}>
+            <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/${r}`} size={80} />
+            <div style={{ fontSize: 12 }}>{r}</div>
+          </div>
+        ))}
+      </li>)}</ul>
       <h2>Recent scorecards</h2>
       <ul>
         {scorecards.map(sc => (
