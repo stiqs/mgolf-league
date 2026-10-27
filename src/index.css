@@ -1,0 +1,4 @@
+:root { font-family: system-ui, sans-serif; }
+body { margin: 0; background: #0f172a; color: #e2e8f0; }
+input, select, button { font: inherit; }
+button { cursor: pointer; padding: 6px 12px; }

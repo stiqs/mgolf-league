@@ -1,0 +1,4 @@
+mini-golf.muzoapps.com {
+	import app_site
+	root * /srv/frontends/mini-golf/current
+}
