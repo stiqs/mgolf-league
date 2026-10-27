@@ -42,7 +42,7 @@ export default function Home() {
                 {w.game_date && <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 8 }}>{w.game_date}</div>}
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {['aces', 'duffleboard', 'minigolf'].map(r => (
-                    <Link key={r} to={`/upload/${w.week_no}/${r}`} style={{ padding: '8px 12px', background: '#334155', borderRadius: 6, color: '#e2e8f0', textDecoration: 'none' }}>
+                    <Link key={r} to={`/upload/${w.id}/${r}`} style={{ padding: '8px 12px', background: '#334155', borderRadius: 6, color: '#e2e8f0', textDecoration: 'none' }}>
                       {r}
                     </Link>
                   ))}

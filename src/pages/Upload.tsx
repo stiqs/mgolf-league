@@ -7,7 +7,7 @@ import { ensureRound } from '../lib/rounds'
 type ParsedRow = { team: string; scores: (number | null)[]; confidence: number }
 
 export default function Upload() {
-  const { week, round } = useParams()
+  const { weekId, round } = useParams()
   const [teams, setTeams] = useState<{ id: string; name: string }[]>([])
   const [roundId, setRoundId] = useState<string | null>(null)
   const [submitter, setSubmitter] = useState<string>('')
@@ -27,8 +27,8 @@ export default function Upload() {
   const streamRef = useRef<MediaStream | null>(null)
   useEffect(() => {
     supabase.from('teams').select('id,name').order('name').then(({ data }) => setTeams(data ?? []))
-    ensureRound(Number(week), round!).then(r => setRoundId(r.roundId)).catch(e => setStatus(String(e)))
-  }, [week, round])
+    ensureRound(weekId!, round!).then(r => setRoundId(r.roundId)).catch(e => setStatus(String(e)))
+  }, [weekId, round])
   const onFile = (f: File) => {
     const url = URL.createObjectURL(f)
     const img = new Image()
@@ -186,7 +186,7 @@ export default function Upload() {
 
   return (
     <main style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
-      <h1>Upload scorecard — week {week} / {round}</h1>
+      <h1>Upload scorecard — {round}</h1>
       <label>Submitter team:
         <select value={submitter} onChange={e => setSubmitter(e.target.value)}>
           <option value="">select...</option>

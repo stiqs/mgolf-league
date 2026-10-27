@@ -5,7 +5,7 @@ import { supabase } from '../lib/supabase'
 const LEAGUE_TEAMS = ["Stroke Play","Putter Nonsense","The Dubs","Prestige worldwide","Putt Putt Phlop","Complete and Putter Madness","Par-Tini","Power Putt Girls","Bad boyz","Hoppy Gilmore","hala madrid","Arnold Pomeranians","Putt Stuff","The Royal Putters","Open for suggestions","Just here for Beer","Beginners Luck","Mai Tais and Mulligans","Ding & Dong","Hakuna Ma-Putta","What The Putt"]
 
 function monthName(d: Date) {
-  return d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
 export default function Admin() {
@@ -96,7 +96,7 @@ export default function Admin() {
   const createSeason = async () => {
     if (!activeLeague) { alert('Create a league first'); return }
     if (!seasonStart) { alert('Pick a start date'); return }
-    const start = new Date(seasonStart + 'T00:00:00')
+    const start = new Date(seasonStart + 'T00:00:00Z')
     const name = monthName(start)
     const { data: season } = await supabase.from('seasons').insert({
       name, league_id: activeLeague, start_date: seasonStart, number_of_weeks: seasonWeeks
@@ -104,7 +104,7 @@ export default function Admin() {
     if (!season) return
     const rows = Array.from({ length: seasonWeeks }, (_, i) => {
       const d = new Date(start)
-      d.setDate(d.getDate() + i * 7)
+      d.setUTCDate(d.getUTCDate() + i * 7)
       return { season_id: season.id, week_no: i + 1, game_date: d.toISOString().slice(0, 10), theme: '' }
     })
     await supabase.from('weeks').insert(rows)
@@ -179,7 +179,7 @@ export default function Admin() {
           <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ minWidth: 180 }} />
           {['aces','duffleboard','minigolf'].map(r => (
             <div key={r} style={{ textAlign: 'center' }}>
-              <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/${r}`} size={80} />
+              <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
               <div style={{ fontSize: 12 }}>{r}</div>
             </div>
           ))}

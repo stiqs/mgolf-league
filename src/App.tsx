@@ -8,7 +8,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/upload/:week/:round" element={<Upload />} />
+      <Route path="/upload/:weekId/:round" element={<Upload />} />
       <Route path="/verify/:id" element={<Verify />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<Navigate to="/" replace />} />
