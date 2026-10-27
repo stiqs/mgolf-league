@@ -17,6 +17,7 @@ export default function Upload() {
   const [parsed, setParsed] = useState<ParsedRow[] | null>(null)
   const [scorecardId, setScorecardId] = useState<string | null>(null)
   const [verifyToken, setVerifyToken] = useState<string | null>(null)
+  const [rotation, setRotation] = useState(0)
 
   // camera
   const [cameraOpen, setCameraOpen] = useState(false)
@@ -28,32 +29,60 @@ export default function Upload() {
     supabase.from('teams').select('id,name').order('name').then(({ data }) => setTeams(data ?? []))
     ensureRound(Number(week), round!).then(r => setRoundId(r.roundId)).catch(e => setStatus(String(e)))
   }, [week, round])
-  const onFile = async (f: File) => {
-    try {
-      const bitmap = await createImageBitmap(f, { imageOrientation: 'from-image' })
+  const onFile = (f: File) => {
+    const url = URL.createObjectURL(f)
+    const img = new Image()
+    img.onload = () => {
       const canvas = document.createElement('canvas')
-      canvas.width = bitmap.width
-      canvas.height = bitmap.height
+      canvas.width = img.naturalWidth
+      canvas.height = img.naturalHeight
       const ctx = canvas.getContext('2d')
-      if (!ctx) throw new Error('no canvas')
-      ctx.drawImage(bitmap, 0, 0)
-      bitmap.close()
+      if (!ctx) { URL.revokeObjectURL(url); setFile(f); const r = new FileReader(); r.onload = () => setPreview(r.result as string); r.readAsDataURL(f); return }
+      ctx.drawImage(img, 0, 0)
+      URL.revokeObjectURL(url)
       canvas.toBlob(blob => {
         if (!blob) { setFile(f); const r = new FileReader(); r.onload = () => setPreview(r.result as string); r.readAsDataURL(f); return }
-        const oriented = new File([blob], f.name, { type: 'image/jpeg' })
+        const oriented = new File([blob], f.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
         setFile(oriented)
         const r = new FileReader()
         r.onload = () => setPreview(r.result as string)
         r.readAsDataURL(oriented)
       }, 'image/jpeg', 0.92)
-    } catch {
+    }
+    img.onerror = () => {
+      URL.revokeObjectURL(url)
       setFile(f)
       const r = new FileReader()
       r.onload = () => setPreview(r.result as string)
       r.readAsDataURL(f)
     }
+    img.src = url
   }
-
+  const rotate = () => {
+    if (!preview || !file) return
+    const img = new Image()
+    img.onload = () => {
+      const r = (rotation + 90) % 360
+      const canvas = document.createElement('canvas')
+      const w = img.naturalWidth, h = img.naturalHeight
+      if (r === 90 || r === 270) { canvas.width = h; canvas.height = w } else { canvas.width = w; canvas.height = h }
+      const ctx = canvas.getContext('2d')
+      if (!ctx) return
+      ctx.translate(canvas.width / 2, canvas.height / 2)
+      ctx.rotate((r * Math.PI) / 180)
+      ctx.drawImage(img, -w / 2, -h / 2)
+      canvas.toBlob(blob => {
+        if (!blob) return
+        const f = new File([blob], file.name, { type: 'image/jpeg' })
+        setFile(f)
+        const rr = new FileReader()
+        rr.onload = () => setPreview(rr.result as string)
+        rr.readAsDataURL(f)
+        setRotation(r)
+      }, 'image/jpeg', 0.92)
+    }
+    img.src = preview
+  }
   const startCamera = async () => {
     setCameraError(null)
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -144,7 +173,7 @@ export default function Upload() {
     const entries: { scorecard_id: string; team_id: string | null; hole: number; strokes: number | null; confidence: number; corrected: boolean }[] = []
     parsed.forEach(r => {
       const teamId = teams.find(t => t.name === r.team)?.id ?? null
-      r.scores.forEach((s, hi) => {
+      r.scores.forEach((s: number | null, hi: number) => {
         entries.push({ scorecard_id: scorecardId, team_id: teamId, hole: hi + 1, strokes: s, confidence: r.confidence, corrected: true })
     })
     })
@@ -166,10 +195,7 @@ export default function Upload() {
       </label>
       <div style={{ margin: '12px 0', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
         <button onClick={startCamera}>📷 Take Photo</button>
-        <label style={{ padding: '8px 12px', background: '#334155', borderRadius: 6, cursor: 'pointer', display: 'inline-block' }}>
-          📁 Choose File
-          <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
-        </label>
+        <input type="file" accept="image/*" onChange={e => e.target.files?.[0] && onFile(e.target.files[0])} />
       </div>
       {cameraError && <p style={{ color: '#f87171' }}>{cameraError}</p>}
       {cameraOpen && (
@@ -182,7 +208,14 @@ export default function Upload() {
           </div>
         </div>
       )}
-      {preview && <img src={preview} alt="preview" style={{ maxWidth: '100%', maxHeight: 300 }} />}
+      {preview && (
+        <div>
+          <img src={preview} alt="preview" style={{ maxWidth: '100%', maxHeight: 300 }} />
+          <div style={{ marginTop: 8 }}>
+            <button onClick={rotate}>🔄 Rotate 90°</button>
+          </div>
+        </div>
+      )}
       <div style={{ margin: '12px 0' }}>
         <button onClick={parse} disabled={!file || !submitter}>Parse card</button>
       </div>
@@ -192,7 +225,7 @@ export default function Upload() {
           <table border={1} cellPadding={4}>
             <thead><tr><th>Team</th>{[1,2,3,4,5,6,7,8,9].map(h => <th key={h}>{h}</th>)}<th>TOTAL</th></tr></thead>
             <tbody>
-              {parsed.map((r, ri) => (
+              {parsed.map((r: ParsedRow, ri: number) => (
                 <tr key={ri}>
                   <td>
                     <select value={r.team} onChange={e => updateTeam(ri, e.target.value)}>
@@ -201,12 +234,12 @@ export default function Upload() {
                     </select>
                     <div style={{ fontSize: 11, color: r.confidence > 80 ? 'green' : 'orange' }}>conf {r.confidence}</div>
                   </td>
-                  {r.scores.map((s, hi) => (
+                  {r.scores.map((s: number | null, hi: number) => (
                     <td key={hi}>
                       <input style={{ width: 36 }} value={s ?? ''} onChange={e => updateCell(ri, hi, e.target.value)} />
                     </td>
                   ))}
-                  <td style={{ fontWeight: 'bold' }}>{r.scores.reduce((a: number, b) => a + (b ?? 0), 0)}</td>
+                  <td style={{ fontWeight: 'bold' }}>{r.scores.reduce((a: number, b: number | null) => a + (b ?? 0), 0)}</td>
                 </tr>
               ))}
             </tbody>
