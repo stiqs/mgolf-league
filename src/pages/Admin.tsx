@@ -46,12 +46,12 @@ export default function Admin() {
     const { data: w } = await supabase.from('weeks').select('*').in('season_id', seasonIds).order('week_no')
     setWeeks(w ?? [])
     const weekIds = (w ?? []).map(x => x.id)
-    if (weekIds.length) {
-      const { data: sc } = await supabase.from('scorecards').select('*').in('round_id', (await supabase.from('mg_rounds').select('id').in('week_id', weekIds)).data?.map(r=>r.id) ?? []).order('created_at', { ascending: false }).limit(50)
-      setScorecards(sc ?? [])
-    } else {
-      setScorecards([])
-    }
+    if (weekIds.length === 0) { setScorecards([]); return }
+    const { data: rounds } = await supabase.from('mg_rounds').select('id').in('week_id', weekIds)
+    const roundIds = (rounds ?? []).map(r => r.id)
+    if (roundIds.length === 0) { setScorecards([]); return }
+    const { data: sc } = await supabase.from('scorecards').select('*').in('round_id', roundIds).order('created_at', { ascending: false }).limit(50)
+    setScorecards(sc ?? [])
   }
   useEffect(() => { if (session && isAdmin) loadLeagues() }, [session, isAdmin])
   useEffect(() => { if (session && isAdmin && activeLeague) load() }, [session, isAdmin, activeLeague])
@@ -69,23 +69,22 @@ export default function Admin() {
     const { data: league } = await supabase.from('leagues').insert({ name, owner_user_id: session.user.id }).select('id').single()
     if (!league) return
     await supabase.from('seasons').insert({ name: name + ' Season 1', league_id: league.id }).select('id').single()
-    // seed teams for this league
     await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
     await loadLeagues()
     setActiveLeague(league.id)
   }
   const addWeek = async () => {
     if (!activeLeague) { alert('Create a league first'); return }
-    const { data: seasons } = await supabase.from('seasons').select('id').eq('league_id', activeLeague).limit(1).maybeSingle()
-    let season = seasons
-    if (!season) {
-      const { data: s } = await supabase.from('seasons').insert({ name: 'Season 1', league_id: activeLeague }).select('id').single()
-      season = s
+    const { data: season } = await supabase.from('seasons').select('id').eq('league_id', activeLeague).limit(1).maybeSingle()
+    let s = season
+    if (!s) {
+      const { data: ns } = await supabase.from('seasons').insert({ name: 'Season 1', league_id: activeLeague }).select('id').single()
+      s = ns
     }
-    const { data: ws } = await supabase.from('weeks').select('week_no').eq('season_id', season!.id)
+    const { data: ws } = await supabase.from('weeks').select('week_no').eq('season_id', s!.id)
     const n = (ws && ws.length) ? Math.max(...ws.map(w => w.week_no)) + 1 : 1
-    await supabase.from('weeks').insert({ season_id: season!.id, week_no: n })
-    const { data: wk } = await supabase.from('weeks').select('id').eq('season_id', season!.id).eq('week_no', n).single()
+    await supabase.from('weeks').insert({ season_id: s!.id, week_no: n })
+    const { data: wk } = await supabase.from('weeks').select('id').eq('season_id', s!.id).eq('week_no', n).single()
     await supabase.from('mg_rounds').insert([
       { week_id: wk!.id, type: 'aces' },
       { week_id: wk!.id, type: 'duffleboard' },
