@@ -8,6 +8,14 @@ function monthName(d: Date) {
   return d.toLocaleString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' })
 }
 
+function isCurrent(s: { start_date: string | null; number_of_weeks: number | null }, today = new Date()): boolean {
+  if (!s.start_date) return false
+  const start = new Date(s.start_date + 'T00:00:00Z')
+  const end = new Date(start)
+  end.setUTCDate(end.getUTCDate() + ((s.number_of_weeks ?? 1) * 7))
+  return today >= start && today < end
+}
+
 export default function Admin() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
@@ -55,8 +63,13 @@ export default function Admin() {
   const loadSeasons = async () => {
     if (!activeLeague) return
     const { data } = await supabase.from('seasons').select('*').eq('league_id', activeLeague).order('start_date')
-    setSeasons(data ?? [])
-    if (!activeSeason && data && data.length) setActiveSeason(data[data.length - 1].id)
+    const ss = data ?? []
+    setSeasons(ss)
+    if (!activeSeason && ss.length) {
+      const current = ss.find(s => isCurrent(s))
+      const latest = ss.filter(s => s.start_date).sort((a, b) => (a.start_date! < b.start_date! ? 1 : -1))[0]
+      setActiveSeason((current ?? latest ?? ss[ss.length - 1]).id)
+    }
   }
   const load = async () => {
     if (!activeSeason) { setWeeks([]); setScorecards([]); return }
