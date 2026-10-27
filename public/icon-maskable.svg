@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="mgolf league">
+  <rect width="512" height="512" rx="0" fill="#0f172a"/>
+<g transform="translate(256 256) scale(0.78) translate(-256 -256)">
+
+  <!-- putting hole -->
+  <ellipse cx="256" cy="392" rx="72" ry="18" fill="#020617"/>
+  <ellipse cx="256" cy="392" rx="48" ry="11" fill="#000" opacity="0.55"/>
+
+  <!-- flagstick -->
+  <rect x="249" y="128" width="14" height="264" rx="7" fill="#e2e8f0"/>
+
+  <!-- flag: a scorecard -->
+  <rect x="263" y="128" width="164" height="120" rx="16" fill="#38bdf8"/>
+  <g stroke="#0f172a" stroke-width="8" opacity="0.85">
+    <line x1="318" y1="128" x2="318" y2="248"/>
+    <line x1="372" y1="128" x2="372" y2="248"/>
+    <line x1="279" y1="188" x2="411" y2="188"/>
+  </g>
+  <!-- tiny score ticks -->
+  <g fill="#0f172a">
+    <circle cx="296" cy="158" r="7"/>
+    <circle cx="346" cy="158" r="7"/>
+    <circle cx="400" cy="158" r="7"/>
+    <circle cx="296" cy="218" r="7"/>
+    <circle cx="346" cy="218" r="7"/>
+  </g>
+
+  <!-- ball -->
+  <circle cx="188" cy="368" r="26" fill="#e2e8f0"/>
+  <circle cx="188" cy="368" r="26" fill="url(#ballShade)" opacity="0.25"/>
+  <defs>
+    <radialGradient id="ballShade" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#94a3b8"/>
+    </radialGradient>
+  </defs>
+</g>
+</svg>
