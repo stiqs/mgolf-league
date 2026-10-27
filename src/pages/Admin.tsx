@@ -4,16 +4,24 @@ import { supabase } from '../lib/supabase'
 
 const LEAGUE_TEAMS = ["Stroke Play","Putter Nonsense","The Dubs","Prestige worldwide","Putt Putt Phlop","Complete and Putter Madness","Par-Tini","Power Putt Girls","Bad boyz","Hoppy Gilmore","hala madrid","Arnold Pomeranians","Putt Stuff","The Royal Putters","Open for suggestions","Just here for Beer","Beginners Luck","Mai Tais and Mulligans","Ding & Dong","Hakuna Ma-Putta","What The Putt"]
 
+function monthName(d: Date) {
+  return d.toLocaleString('en-US', { month: 'long', year: 'numeric' })
+}
+
 export default function Admin() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
   const [leagues, setLeagues] = useState<any[]>([])
   const [activeLeague, setActiveLeague] = useState<string>('')
+  const [seasons, setSeasons] = useState<any[]>([])
+  const [activeSeason, setActiveSeason] = useState<string>('')
   const [weeks, setWeeks] = useState<any[]>([])
   const [scorecards, setScorecards] = useState<any[]>([])
   const [admins, setAdmins] = useState<any[]>([])
   const [newAdmin, setNewAdmin] = useState('')
+  const [seasonStart, setSeasonStart] = useState('')
+  const [seasonWeeks, setSeasonWeeks] = useState(8)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSession(data.session))
@@ -43,12 +51,15 @@ export default function Admin() {
     setLeagues(data ?? [])
     if (!activeLeague && data && data.length) setActiveLeague(data[0].id)
   }
-  const load = async () => {
+  const loadSeasons = async () => {
     if (!activeLeague) return
-    const { data: seasons } = await supabase.from('seasons').select('id').eq('league_id', activeLeague)
-    const seasonIds = (seasons ?? []).map(s => s.id)
-    if (seasonIds.length === 0) { setWeeks([]); setScorecards([]); return }
-    const { data: w } = await supabase.from('weeks').select('*').in('season_id', seasonIds).order('week_no')
+    const { data } = await supabase.from('seasons').select('*').eq('league_id', activeLeague).order('start_date')
+    setSeasons(data ?? [])
+    if (!activeSeason && data && data.length) setActiveSeason(data[data.length - 1].id)
+  }
+  const load = async () => {
+    if (!activeSeason) { setWeeks([]); setScorecards([]); return }
+    const { data: w } = await supabase.from('weeks').select('*').eq('season_id', activeSeason).order('week_no')
     setWeeks(w ?? [])
     const weekIds = (w ?? []).map(x => x.id)
     if (weekIds.length === 0) { setScorecards([]); return }
@@ -63,7 +74,8 @@ export default function Admin() {
     setAdmins(data ?? [])
   }
   useEffect(() => { if (session && isAdmin) { loadLeagues(); loadAdmins() } }, [session, isAdmin])
-  useEffect(() => { if (session && isAdmin && activeLeague) load() }, [session, isAdmin, activeLeague])
+  useEffect(() => { if (session && isAdmin && activeLeague) loadSeasons() }, [session, isAdmin, activeLeague])
+  useEffect(() => { if (session && isAdmin && activeSeason) load() }, [session, isAdmin, activeSeason])
 
   const login = async () => {
     await supabase.auth.signInWithOtp({ email })
@@ -77,29 +89,31 @@ export default function Admin() {
     if (!name) return
     const { data: league } = await supabase.from('leagues').insert({ name, owner_user_id: session.user.id }).select('id').single()
     if (!league) return
-    await supabase.from('seasons').insert({ name: name + ' Season 1', league_id: league.id }).select('id').single()
     await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
     await loadLeagues()
     setActiveLeague(league.id)
   }
-  const addWeek = async () => {
+  const createSeason = async () => {
     if (!activeLeague) { alert('Create a league first'); return }
-    const { data: season } = await supabase.from('seasons').select('id').eq('league_id', activeLeague).limit(1).maybeSingle()
-    let s = season
-    if (!s) {
-      const { data: ns } = await supabase.from('seasons').insert({ name: 'Season 1', league_id: activeLeague }).select('id').single()
-      s = ns
-    }
-    const { data: ws } = await supabase.from('weeks').select('week_no').eq('season_id', s!.id)
-    const n = (ws && ws.length) ? Math.max(...ws.map(w => w.week_no)) + 1 : 1
-    await supabase.from('weeks').insert({ season_id: s!.id, week_no: n })
-    const { data: wk } = await supabase.from('weeks').select('id').eq('season_id', s!.id).eq('week_no', n).single()
-    await supabase.from('mg_rounds').insert([
-      { week_id: wk!.id, type: 'aces' },
-      { week_id: wk!.id, type: 'duffleboard' },
-      { week_id: wk!.id, type: 'minigolf' },
-    ])
-    load()
+    if (!seasonStart) { alert('Pick a start date'); return }
+    const start = new Date(seasonStart + 'T00:00:00')
+    const name = monthName(start)
+    const { data: season } = await supabase.from('seasons').insert({
+      name, league_id: activeLeague, start_date: seasonStart, number_of_weeks: seasonWeeks
+    }).select('id').single()
+    if (!season) return
+    const rows = Array.from({ length: seasonWeeks }, (_, i) => {
+      const d = new Date(start)
+      d.setDate(d.getDate() + i * 7)
+      return { season_id: season.id, week_no: i + 1, game_date: d.toISOString().slice(0, 10), theme: '' }
+    })
+    await supabase.from('weeks').insert(rows)
+    await loadSeasons()
+    setActiveSeason(season.id)
+  }
+  const updateTheme = async (id: string, theme: string) => {
+    setWeeks(ws => ws.map(w => w.id === id ? { ...w, theme } : w))
+    await supabase.from('weeks').update({ theme }).eq('id', id)
   }
   const unlock = async (id: string) => {
     await supabase.from('scorecards').update({ status: 'submitted', locked_at: null, locked_by_team_id: null }).eq('id', id)
@@ -138,24 +152,39 @@ export default function Admin() {
   return (
     <main style={{ padding: 16 }}>
       <h1>Admin</h1>
-      <div style={{ marginBottom: 12 }}>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
         <label>League: </label>
-        <select value={activeLeague} onChange={e => setActiveLeague(e.target.value)}>
+        <select value={activeLeague} onChange={e => { setActiveLeague(e.target.value); setActiveSeason('') }}>
           {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
         </select>
-        <button onClick={createLeague} style={{ marginLeft: 8 }}>Create league</button>
-        <button onClick={addWeek} style={{ marginLeft: 8 }}>Add week</button>
-        <button onClick={signOut} style={{ marginLeft: 8 }}>Sign out</button>
+        <button onClick={createLeague}>Create league</button>
+        <button onClick={signOut}>Sign out</button>
+      </div>
+      <div style={{ marginBottom: 12, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+        <label>Season: </label>
+        <select value={activeSeason} onChange={e => setActiveSeason(e.target.value)}>
+          {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+        </select>
+        <input type="date" value={seasonStart} onChange={e => setSeasonStart(e.target.value)} />
+        <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} style={{ width: 60 }} />
+        <button onClick={createSeason}>Create season</button>
       </div>
       <h2>Weeks</h2>
-      <ul>{weeks.map(w => <li key={w.id} style={{ display:'flex', gap:16, alignItems:'center', marginBottom:12 }}>Week {w.week_no}
-        {['aces','duffleboard','minigolf'].map(r => (
-          <div key={r} style={{ textAlign:'center' }}>
-            <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/${r}`} size={80} />
-            <div style={{ fontSize: 12 }}>{r}</div>
+      <ul>{weeks.map(w => (
+        <li key={w.id} style={{ display: 'flex', gap: 16, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 120 }}>
+            <strong>Week {w.week_no}</strong>
+            {w.game_date && <div style={{ fontSize: 12 }}>{w.game_date}</div>}
           </div>
-        ))}
-      </li>)}</ul>
+          <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ minWidth: 180 }} />
+          {['aces','duffleboard','minigolf'].map(r => (
+            <div key={r} style={{ textAlign: 'center' }}>
+              <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/${r}`} size={80} />
+              <div style={{ fontSize: 12 }}>{r}</div>
+            </div>
+          ))}
+        </li>
+      ))}</ul>
       <h2>Recent scorecards</h2>
       <ul>
         {scorecards.map(sc => (
