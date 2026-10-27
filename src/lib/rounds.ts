@@ -1,10 +1,16 @@
 import { supabase } from './supabase'
 
 export async function ensureRound(weekNo: number, roundType: string) {
-  // ensure a season
-  let { data: season } = await supabase.from('seasons').select('id').limit(1).maybeSingle()
+  // ensure a league
+  let { data: league } = await supabase.from('leagues').select('id').limit(1).maybeSingle()
+  if (!league) {
+    const { data: l } = await supabase.from('leagues').insert({ name: 'Default League' }).select('id').single()
+    league = l
+  }
+  // ensure a season for this league
+  let { data: season } = await supabase.from('seasons').select('id').eq('league_id', league!.id).limit(1).maybeSingle()
   if (!season) {
-    const { data: s } = await supabase.from('seasons').insert({ name: 'Season 1' }).select('id').single()
+    const { data: s } = await supabase.from('seasons').insert({ name: 'Season 1', league_id: league!.id }).select('id').single()
     season = s
   }
   // ensure week
@@ -19,5 +25,5 @@ export async function ensureRound(weekNo: number, roundType: string) {
     const { data: r } = await supabase.from('mg_rounds').insert({ week_id: week!.id, type: roundType }).select('id').single()
     round = r
   }
-  return { seasonId: season!.id, weekId: week!.id, roundId: round!.id }
+  return { seasonId: season!.id, weekId: week!.id, roundId: round!.id, leagueId: league!.id }
 }

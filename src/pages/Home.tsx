@@ -16,6 +16,9 @@ export default function Home() {
   return (
     <main style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
       <h1>mgolf league</h1>
+      <p style={{ color: '#94a3b8', maxWidth: 600 }}>
+        Upload a photo of a scorecard after each round. Pick your team, parse the card with AI, fix any misread cells, then submit. Share the verify QR with another team on the card so they can attest and lock it. Locked cards feed the season standings.
+      </p>
       <p>Upload a scorecard for a round:</p>
       {loading && <p>Loading...</p>}
       {!loading && weeks.length === 0 && <p>No weeks yet. Ask admin to create one.</p>}

@@ -12,11 +12,11 @@ function prompt(teamList: string[]): string {
 - Columns: HOLE 1..9, then TOTAL. PAR row is 3 for each hole (total 27).
 - Rows: one per team/player. The team name or initials is written in the LEFTMOST column of the grid (the row label), NOT in the title text at the top of the card. Read EVERY row that has a label in that leftmost column — do not skip any, even if the name is abbreviated or is initials.
 
-The top-left handwritten word(s) on the card indicate the type of round (e.g. "Aces", "Duffleboard", "Stroke Play"/"Golf"). Read that too.
+The single handwritten word in the top-left corner of the card indicates the type of round (e.g. "Aces", "Duffleboard", "Golf"). Read only that one word, not the title text elsewhere.
 
 Read the card and return ONLY a JSON object:
 {
-  "round_label": "<top-left handwritten round type, exactly as written>",
+  "round_label": "<the single top-left handwritten word, exactly as written>",
   "teams": ["<raw handwritten name as written>", ...],
   "team_matches": ["<matched league team name or null>", ...],
   "scores": [[<strokes or null>, ... 9 values], ...],

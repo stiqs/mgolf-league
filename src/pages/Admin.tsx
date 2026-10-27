@@ -2,9 +2,14 @@ import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 
+const LEAGUE_TEAMS = ["Stroke Play","Putter Nonsense","The Dubs","Prestige worldwide","Putt Putt Phlop","Complete and Putter Madness","Par-Tini","Power Putt Girls","Bad boyz","Hoppy Gilmore","hala madrid","Arnold Pomeranians","Putt Stuff","The Royal Putters","Open for suggestions","Just here for Beer","Beginners Luck","Mai Tais and Mulligans","Ding & Dong","Hakuna Ma-Putta","What The Putt"]
+
 export default function Admin() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [leagues, setLeagues] = useState<any[]>([])
+  const [activeLeague, setActiveLeague] = useState<string>('')
   const [weeks, setWeeks] = useState<any[]>([])
   const [scorecards, setScorecards] = useState<any[]>([])
 
@@ -14,28 +19,77 @@ export default function Admin() {
     return () => sub.subscription.unsubscribe()
   }, [])
 
-  const load = async () => {
-    const { data: w } = await supabase.from('weeks').select('*').order('week_no')
-    setWeeks(w ?? [])
-    const { data: sc } = await supabase.from('scorecards').select('*').order('created_at', { ascending: false }).limit(50)
-    setScorecards(sc ?? [])
+  useEffect(() => {
+    if (!session) { setIsAdmin(null); return }
+    supabase.from('admins').select('email').eq('email', session.user.email).maybeSingle().then(({ data }) => {
+      if (data) { setIsAdmin(true); return }
+      supabase.from('admins').select('email', { count: 'exact', head: true }).then(({ count }) => {
+        if ((count ?? 0) === 0) {
+          supabase.from('admins').insert({ email: session.user.email }).then(() => setIsAdmin(true))
+        } else {
+          setIsAdmin(false)
+        }
+      })
+    })
+  }, [session])
+
+  const loadLeagues = async () => {
+    const { data } = await supabase.from('leagues').select('*').order('created_at')
+    setLeagues(data ?? [])
+    if (!activeLeague && data && data.length) setActiveLeague(data[0].id)
   }
-  useEffect(() => { if (session) load() }, [session])
+  const load = async () => {
+    if (!activeLeague) return
+    const { data: seasons } = await supabase.from('seasons').select('id').eq('league_id', activeLeague)
+    const seasonIds = (seasons ?? []).map(s => s.id)
+    if (seasonIds.length === 0) { setWeeks([]); setScorecards([]); return }
+    const { data: w } = await supabase.from('weeks').select('*').in('season_id', seasonIds).order('week_no')
+    setWeeks(w ?? [])
+    const weekIds = (w ?? []).map(x => x.id)
+    if (weekIds.length) {
+      const { data: sc } = await supabase.from('scorecards').select('*').in('round_id', (await supabase.from('mg_rounds').select('id').in('week_id', weekIds)).data?.map(r=>r.id) ?? []).order('created_at', { ascending: false }).limit(50)
+      setScorecards(sc ?? [])
+    } else {
+      setScorecards([])
+    }
+  }
+  useEffect(() => { if (session && isAdmin) loadLeagues() }, [session, isAdmin])
+  useEffect(() => { if (session && isAdmin && activeLeague) load() }, [session, isAdmin, activeLeague])
 
   const login = async () => {
     await supabase.auth.signInWithOtp({ email })
     alert('Magic link sent to ' + email)
   }
+  const googleLogin = async () => {
+    await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin + '/admin' } })
+  }
+  const createLeague = async () => {
+    const name = prompt('League name?')
+    if (!name) return
+    const { data: league } = await supabase.from('leagues').insert({ name, owner_user_id: session.user.id }).select('id').single()
+    if (!league) return
+    await supabase.from('seasons').insert({ name: name + ' Season 1', league_id: league.id }).select('id').single()
+    // seed teams for this league
+    await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
+    await loadLeagues()
+    setActiveLeague(league.id)
+  }
   const addWeek = async () => {
-    const n = weeks.length ? Math.max(...weeks.map(w => w.week_no)) + 1 : 1
-    // ensure season
-    let { data: season } = await supabase.from('seasons').select('id').limit(1).maybeSingle()
-    if (!season) { const { data: s } = await supabase.from('seasons').insert({ name: 'Season 1' }).select('id').single(); season = s }
+    if (!activeLeague) { alert('Create a league first'); return }
+    const { data: seasons } = await supabase.from('seasons').select('id').eq('league_id', activeLeague).limit(1).maybeSingle()
+    let season = seasons
+    if (!season) {
+      const { data: s } = await supabase.from('seasons').insert({ name: 'Season 1', league_id: activeLeague }).select('id').single()
+      season = s
+    }
+    const { data: ws } = await supabase.from('weeks').select('week_no').eq('season_id', season!.id)
+    const n = (ws && ws.length) ? Math.max(...ws.map(w => w.week_no)) + 1 : 1
     await supabase.from('weeks').insert({ season_id: season!.id, week_no: n })
+    const { data: wk } = await supabase.from('weeks').select('id').eq('season_id', season!.id).eq('week_no', n).single()
     await supabase.from('mg_rounds').insert([
-      { week_id: (await supabase.from('weeks').select('id').eq('season_id', season!.id).eq('week_no', n).single()).data!.id, type: 'aces' },
-      { week_id: (await supabase.from('weeks').select('id').eq('season_id', season!.id).eq('week_no', n).single()).data!.id, type: 'duffleboard' },
-      { week_id: (await supabase.from('weeks').select('id').eq('season_id', season!.id).eq('week_no', n).single()).data!.id, type: 'minigolf' },
+      { week_id: wk!.id, type: 'aces' },
+      { week_id: wk!.id, type: 'duffleboard' },
+      { week_id: wk!.id, type: 'minigolf' },
     ])
     load()
   }
@@ -43,6 +97,7 @@ export default function Admin() {
     await supabase.from('scorecards').update({ status: 'submitted', locked_at: null, locked_by_team_id: null }).eq('id', id)
     load()
   }
+  const signOut = async () => { await supabase.auth.signOut() }
 
   if (!session) {
     return (
@@ -50,13 +105,34 @@ export default function Admin() {
         <h1>Admin login</h1>
         <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" />
         <button onClick={login}>Send magic link</button>
+        <button onClick={googleLogin} style={{ marginLeft: 8 }}>Sign in with Google</button>
+      </main>
+    )
+  }
+  if (isAdmin === null) {
+    return <main style={{ padding: 16 }}>Checking permissions...</main>
+  }
+  if (!isAdmin) {
+    return (
+      <main style={{ padding: 16 }}>
+        <h1>Not authorized</h1>
+        <p>Your account ({session.user.email}) is not an admin.</p>
+        <button onClick={signOut}>Sign out</button>
       </main>
     )
   }
   return (
     <main style={{ padding: 16 }}>
       <h1>Admin</h1>
-      <button onClick={addWeek}>Add next week</button>
+      <div style={{ marginBottom: 12 }}>
+        <label>League: </label>
+        <select value={activeLeague} onChange={e => setActiveLeague(e.target.value)}>
+          {leagues.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
+        </select>
+        <button onClick={createLeague} style={{ marginLeft: 8 }}>Create league</button>
+        <button onClick={addWeek} style={{ marginLeft: 8 }}>Add week</button>
+        <button onClick={signOut} style={{ marginLeft: 8 }}>Sign out</button>
+      </div>
       <h2>Weeks</h2>
       <ul>{weeks.map(w => <li key={w.id} style={{ display:'flex', gap:8, alignItems:'center' }}>Week {w.week_no} <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/aces`} size={80} /> <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/duffleboard`} size={80} /> <QRCodeSVG value={`${window.location.origin}/upload/${w.week_no}/minigolf`} size={80} /></li>)}</ul>
       <h2>Recent scorecards</h2>
