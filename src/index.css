@@ -73,6 +73,7 @@ input, select, textarea {
   max-width: 100%;
 }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+select, select option { color: var(--fg); background: var(--surface); }
 label { display: block; margin-bottom: 8px; color: var(--muted); font-size: 0.9rem; }
 
 .card {
