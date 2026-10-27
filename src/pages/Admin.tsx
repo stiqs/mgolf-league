@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
+import Header from '../components/Header'
 
 const LEAGUE_TEAMS = ["Stroke Play","Putter Nonsense","The Dubs","Prestige worldwide","Putt Putt Phlop","Complete and Putter Madness","Par-Tini","Power Putt Girls","Bad boyz","Hoppy Gilmore","hala madrid","Arnold Pomeranians","Putt Stuff","The Royal Putters","Open for suggestions","Just here for Beer","Beginners Luck","Mai Tais and Mulligans","Ding & Dong","Hakuna Ma-Putta","What The Putt"]
 
@@ -168,7 +169,7 @@ export default function Admin() {
   if (!session) {
     return (
       <main>
-        <h1>Admin login</h1>
+        <Header title="Admin login" back />
         <div className="stack" style={{ maxWidth: 360 }}>
           <input value={email} onChange={e => setEmail(e.target.value)} placeholder="email" type="email" autoComplete="email" />
           <button onClick={login}>Send magic link</button>
@@ -183,7 +184,7 @@ export default function Admin() {
   if (!isAdmin) {
     return (
       <main>
-        <h1>Not authorized</h1>
+        <Header title="Not authorized" back />
         <p>Your account ({session.user.email}) is not an admin.</p>
         <button onClick={signOut}>Sign out</button>
       </main>
@@ -191,7 +192,7 @@ export default function Admin() {
   }
   return (
     <main>
-      <h1>Admin</h1>
+      <Header title="Admin" back />
 
       <div className="card">
         <label>League</label>

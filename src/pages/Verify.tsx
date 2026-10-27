@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import Header from '../components/Header'
 
 export default function Verify() {
   const { id } = useParams()
@@ -42,7 +43,7 @@ export default function Verify() {
 
   return (
     <main>
-      <h1>Verify scorecard</h1>
+      <Header title="Verify scorecard" back />
       <p className="muted">Status: <strong>{card.status}</strong></p>
       {img && <img src={img} alt="card" className="preview-img" />}
 

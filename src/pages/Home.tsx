@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import Header from '../components/Header'
 
 type Week = { id: string; week_no: number; theme: string | null; game_date: string | null; season_id: string }
 type Season = { id: string; name: string; start_date: string | null; number_of_weeks: number | null; league_id: string | null }
@@ -62,10 +63,7 @@ export default function Home() {
 
   return (
     <main>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-        <img src="/logo.svg" alt="" width={48} height={48} style={{ borderRadius: 12 }} />
-        <h1 style={{ margin: 0 }}>mgolf league</h1>
-      </div>
+      <Header />
       <p className="muted" style={{ maxWidth: 600 }}>
         Upload a photo of a scorecard after each round. Pick your team, parse with AI, fix misread cells, then submit. Share the verify QR with another team on the card to lock it.
       </p>

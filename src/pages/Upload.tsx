@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import { QRCodeSVG } from 'qrcode.react'
 import { supabase } from '../lib/supabase'
 import { ensureRound } from '../lib/rounds'
+import Header from '../components/Header'
 
 type ParsedRow = { team: string; scores: (number | null)[]; confidence: number }
 
@@ -186,7 +187,7 @@ export default function Upload() {
 
   return (
     <main>
-      <h1>Upload — {round}</h1>
+      <Header title={`Upload — ${round}`} back />
 
       <label>Submitter team</label>
       <select value={submitter} onChange={e => setSubmitter(e.target.value)}>
