@@ -111,9 +111,10 @@ export default function Admin() {
       if (!exists) break
       slug = `${base}-${i + 2}`
     }
-    const { data: league } = await supabase.from('leagues').insert({ name, slug, owner_user_id: session.user.id }).select('id').single()
-    if (!league) return
-    await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
+    const { data: league, error: leagueErr } = await supabase.from('leagues').insert({ name, slug, owner_user_id: session.user.id }).select('id').single()
+    if (leagueErr || !league) { alert('Could not create league: ' + (leagueErr?.message ?? 'unknown error')); return }
+    const { error: teamsErr } = await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
+    if (teamsErr) alert('League created, but teams failed to seed: ' + teamsErr.message)
     await loadLeagues()
     setActiveLeague(league.id)
   }
