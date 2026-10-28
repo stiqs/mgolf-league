@@ -147,3 +147,84 @@ create unique index if not exists teams_league_name_uidx on teams(league_id, nam
 alter table leagues enable row level security;
 alter table league_members enable row level security;
 alter table admins enable row level security;
+
+-- League scoping: helpers, owner backfill, scoped write policies
+-- helper functions
+create or replace function is_global_admin() returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from admins where email = (auth.jwt() ->> 'email'))
+$$;
+
+create or replace function is_league_admin(p_league uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from league_members m where m.league_id = p_league and m.user_id = auth.uid() and m.role in ('owner','admin'))
+$$;
+
+create or replace function league_of_week(p_week uuid) returns uuid
+language sql stable security definer set search_path = public as $$
+  select s.league_id from weeks w join seasons s on s.id = w.season_id where w.id = p_week
+$$;
+
+create or replace function league_of_round(p_round uuid) returns uuid
+language sql stable security definer set search_path = public as $$
+  select s.league_id from mg_rounds r join weeks w on w.id = r.week_id join seasons s on s.id = w.season_id where r.id = p_round
+$$;
+
+-- backfill owners into league_members
+insert into league_members (league_id, user_id, role)
+select id, owner_user_id, 'owner' from leagues where owner_user_id is not null
+on conflict (league_id, user_id) do nothing;
+
+-- drop permissive policies
+drop policy if exists "anon all leagues" on leagues;
+drop policy if exists "auth_all_leagues" on leagues;
+drop policy if exists "anon all league_members" on league_members;
+drop policy if exists "auth_all_league_members" on league_members;
+drop policy if exists "anon all seasons" on seasons;
+drop policy if exists "auth_all_seasons" on seasons;
+drop policy if exists "anon all weeks" on weeks;
+drop policy if exists "auth_all_weeks" on weeks;
+drop policy if exists "anon all mg_rounds" on mg_rounds;
+drop policy if exists "auth_all_mg_rounds" on mg_rounds;
+drop policy if exists "anon all teams" on teams;
+drop policy if exists "auth_all_teams" on teams;
+
+-- leagues: public read, scoped writes
+create policy leagues_select on leagues for select to anon, authenticated using (true);
+create policy leagues_insert on leagues for insert to authenticated with check (is_global_admin() or owner_user_id = auth.uid());
+create policy leagues_update on leagues for update to authenticated using (is_global_admin() or is_league_admin(id));
+create policy leagues_delete on leagues for delete to authenticated using (is_global_admin() or owner_user_id = auth.uid());
+
+-- league_members
+create policy lm_select on league_members for select to anon, authenticated using (true);
+create policy lm_insert on league_members for insert to authenticated with check (is_global_admin() or is_league_admin(league_id));
+create policy lm_update on league_members for update to authenticated using (is_global_admin() or is_league_admin(league_id));
+create policy lm_delete on league_members for delete to authenticated using (is_global_admin() or is_league_admin(league_id));
+
+-- seasons
+create policy seasons_select on seasons for select to anon, authenticated using (true);
+create policy seasons_insert on seasons for insert to authenticated with check (is_global_admin() or is_league_admin(league_id));
+create policy seasons_update on seasons for update to authenticated using (is_global_admin() or is_league_admin(league_id));
+create policy seasons_delete on seasons for delete to authenticated using (is_global_admin() or is_league_admin(league_id));
+
+-- weeks
+create policy weeks_select on weeks for select to anon, authenticated using (true);
+create policy weeks_insert on weeks for insert to authenticated with check (is_global_admin() or is_league_admin((select league_id from seasons where id = season_id)));
+create policy weeks_update on weeks for update to authenticated using (is_global_admin() or is_league_admin((select league_id from seasons where id = season_id)));
+create policy weeks_delete on weeks for delete to authenticated using (is_global_admin() or is_league_admin((select league_id from seasons where id = season_id)));
+
+-- rounds
+create policy rounds_select on mg_rounds for select to anon, authenticated using (true);
+create policy rounds_insert on mg_rounds for insert to authenticated with check (is_global_admin() or is_league_admin(league_of_week(week_id)));
+create policy rounds_update on mg_rounds for update to authenticated using (is_global_admin() or is_league_admin(league_of_week(week_id)));
+create policy rounds_delete on mg_rounds for delete to authenticated using (is_global_admin() or is_league_admin(league_of_week(week_id)));
+
+-- teams
+create policy teams_select on teams for select to anon, authenticated using (true);
+create policy teams_insert on teams for insert to authenticated with check (is_global_admin() or is_league_admin(league_id));
+create policy teams_update on teams for update to authenticated using (is_global_admin() or is_league_admin(league_id));
+create policy teams_delete on teams for delete to authenticated using (is_global_admin() or is_league_admin(league_id));
+
+-- Allow a new owner to add their own membership row
+drop policy if exists lm_insert on league_members;
+create policy lm_insert on league_members for insert to authenticated with check (is_global_admin() or is_league_admin(league_id) or exists (select 1 from leagues l where l.id = league_id and l.owner_user_id = auth.uid()));

@@ -21,6 +21,7 @@ export default function Admin() {
   const [session, setSession] = useState<any>(null)
   const [email, setEmail] = useState('')
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+  const [canManage, setCanManage] = useState<boolean | null>(null)
   const [leagues, setLeagues] = useState<any[]>([])
   const [activeLeague, setActiveLeague] = useState<string>('')
   const [seasons, setSeasons] = useState<any[]>([])
@@ -40,26 +41,35 @@ export default function Admin() {
   }, [])
 
   useEffect(() => {
-    if (!session) { setIsAdmin(null); return }
-    supabase.from('admins').select('email').eq('email', session.user.email).maybeSingle().then(({ data }) => {
-      if (data) { setIsAdmin(true); return }
-      supabase.from('admins').select('email', { count: 'exact', head: true }).then(({ count, error }) => {
-        if (error) { setIsAdmin(false); return }
-        if ((count ?? 0) === 0) {
-          supabase.from('admins').insert({ email: session.user.email }).then(({ error: ie }) => {
-            if (ie) { setIsAdmin(false) } else { setIsAdmin(true) }
-          })
-        } else {
-          setIsAdmin(false)
+    if (!session) { setIsAdmin(null); setCanManage(null); return }
+    ;(async () => {
+      const { data: adminRow } = await supabase.from('admins').select('email').eq('email', session.user.email).maybeSingle()
+      let global = !!adminRow
+      if (!global) {
+        const { count, error } = await supabase.from('admins').select('email', { count: 'exact', head: true })
+        if (!error && (count ?? 0) === 0) {
+          const { error: ie } = await supabase.from('admins').insert({ email: session.user.email })
+          global = !ie
         }
-      })
-    })
+      }
+      setIsAdmin(global)
+      const { data: mem } = await supabase.from('league_members')
+        .select('role').eq('user_id', session.user.id).in('role', ['owner', 'admin'])
+      setCanManage(global || (mem?.length ?? 0) > 0)
+    })()
   }, [session])
 
   const loadLeagues = async () => {
     const { data } = await supabase.from('leagues').select('*').order('created_at')
-    setLeagues(data ?? [])
-    if (!activeLeague && data && data.length) setActiveLeague(data[0].id)
+    let visible = data ?? []
+    if (session && !isAdmin) {
+      const { data: mem } = await supabase.from('league_members')
+        .select('league_id,role').eq('user_id', session.user.id).in('role', ['owner', 'admin'])
+      const ids = new Set((mem ?? []).map(m => m.league_id))
+      visible = visible.filter(l => ids.has(l.id))
+    }
+    setLeagues(visible)
+    if (!activeLeague && visible.length) setActiveLeague(visible[0].id)
   }
   const loadSeasons = async () => {
     if (!activeLeague) return
@@ -90,9 +100,9 @@ export default function Admin() {
     const { data } = await supabase.from('admins').select('email').order('email')
     setAdmins(data ?? [])
   }
-  useEffect(() => { if (session && isAdmin) { loadLeagues(); loadAdmins() } }, [session, isAdmin])
-  useEffect(() => { if (session && isAdmin && activeLeague) loadSeasons() }, [session, isAdmin, activeLeague])
-  useEffect(() => { if (session && isAdmin && activeSeason) load() }, [session, isAdmin, activeSeason])
+  useEffect(() => { if (session && canManage) { loadLeagues(); loadAdmins() } }, [session, canManage])
+  useEffect(() => { if (session && canManage && activeLeague) loadSeasons() }, [session, canManage, activeLeague])
+  useEffect(() => { if (session && canManage && activeSeason) load() }, [session, canManage, activeSeason])
 
   const login = async () => {
     await supabase.auth.signInWithOtp({ email })
@@ -113,6 +123,7 @@ export default function Admin() {
     }
     const { data: league, error: leagueErr } = await supabase.from('leagues').insert({ name, slug, owner_user_id: session.user.id }).select('id').single()
     if (leagueErr || !league) { alert('Could not create league: ' + (leagueErr?.message ?? 'unknown error')); return }
+    await supabase.from('league_members').insert({ league_id: league.id, user_id: session.user.id, role: 'owner' })
     const { error: teamsErr } = await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
     if (teamsErr) alert('League created, but teams failed to seed: ' + teamsErr.message)
     await loadLeagues()
@@ -191,14 +202,14 @@ export default function Admin() {
       </main>
     )
   }
-  if (isAdmin === null) {
+  if (canManage === null) {
     return <main><p>Checking permissions...</p></main>
   }
-  if (!isAdmin) {
+  if (!canManage) {
     return (
       <main>
         <Header title="Not authorized" back />
-        <p>Your account ({session.user.email}) is not an admin.</p>
+        <p>Your account ({session.user.email}) is not an admin of any league.</p>
         <button onClick={signOut}>Sign out</button>
       </main>
     )
@@ -286,14 +297,18 @@ export default function Admin() {
         ))}
       </div>
 
-      <h2>Admins</h2>
-      <div className="card">
-        {admins.map(a => <div key={a.email} className="small">{a.email}</div>)}
-        <div className="stack-mobile" style={{ marginTop: 12 }}>
-          <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="email to add as admin" type="email" />
-          <button onClick={addAdmin}>Add admin</button>
-        </div>
-      </div>
+      {isAdmin && (
+        <>
+          <h2>Admins</h2>
+          <div className="card">
+            {admins.map(a => <div key={a.email} className="small">{a.email}</div>)}
+            <div className="stack-mobile" style={{ marginTop: 12 }}>
+              <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="email to add as admin" type="email" />
+              <button onClick={addAdmin}>Add admin</button>
+            </div>
+          </div>
+        </>
+      )}
     </main>
   )
 }
