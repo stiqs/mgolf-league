@@ -20,7 +20,7 @@ export default function Home() {
     <main>
       <Header />
       <p className="muted" style={{ maxWidth: 600 }}>
-        Pick a league to see its seasons, weeks, and round scorecards.
+        A crowd-sourced score tracker for mini-golf leagues. Each week has three rounds — aces, duffleboard, and mini-golf. After a round, one team photographs the scorecard, the app reads it with AI, the submitting team fixes any misreads, and another team on the card attests to lock the result. Pick a league to start.
       </p>
 
       <h2>Leagues</h2>

@@ -74,7 +74,7 @@ export default function League() {
     <main>
       <Header title={league?.name ?? 'League'} back />
       <p className="muted">
-        Upload a photo of a scorecard after each round. Pick your team, parse with AI, fix misread cells, then submit. Share the verify QR with another team on the card to lock it.
+        Pick the round you just played, then select your team, photograph the scorecard, correct any cells the AI misread, and submit. Share the verify QR with another team on the same card to lock the scores.
       </p>
       {loading && <p>Loading...</p>}
 
