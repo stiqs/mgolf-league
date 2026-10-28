@@ -20,7 +20,7 @@ export default function Home() {
     <main>
       <Header />
       <p className="muted" style={{ maxWidth: 600 }}>
-        Upload a photo of a scorecard after each round. Pick your team, parse with AI, fix misread cells, then submit. Share the verify QR with another team on the card to lock it.
+        Pick a league to see its seasons, weeks, and round scorecards.
       </p>
 
       <h2>Leagues</h2>

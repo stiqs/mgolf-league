@@ -73,6 +73,9 @@ export default function League() {
   return (
     <main>
       <Header title={league?.name ?? 'League'} back />
+      <p className="muted">
+        Upload a photo of a scorecard after each round. Pick your team, parse with AI, fix misread cells, then submit. Share the verify QR with another team on the card to lock it.
+      </p>
       {loading && <p>Loading...</p>}
 
       {seasons.length > 0 && (
