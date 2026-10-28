@@ -7,6 +7,12 @@ type Week = { id: string; week_no: number; theme: string | null; game_date: stri
 type Season = { id: string; name: string; start_date: string | null; number_of_weeks: number | null }
 type League = { id: string; name: string; slug: string }
 
+const ROUNDS = [
+  { key: 'aces', label: 'Aces', icon: '🎯', blurb: 'Closest to the pin' },
+  { key: 'duffleboard', label: 'Duffleboard', icon: '🎲', blurb: 'Slide to score' },
+  { key: 'minigolf', label: 'Mini-golf', icon: '⛳', blurb: 'Classic 9 holes' },
+] as const
+
 function isCurrent(s: Season, today = new Date()): boolean {
   if (!s.start_date) return false
   const start = new Date(s.start_date + 'T00:00:00Z')
@@ -73,40 +79,58 @@ export default function League() {
   return (
     <main>
       <Header title={league?.name ?? 'League'} back />
+
+      <section className="league-hero">
+        <span className="league-badge big">{(league?.name ?? '?').slice(0, 1).toUpperCase()}</span>
+        <div>
+          <h2 style={{ margin: 0 }}>{league?.name}</h2>
+          <div className="small muted">/{league?.slug}</div>
+          <div className="league-stats" style={{ marginTop: 8 }}>
+            <span><strong>{teams.length}</strong> teams</span>
+            <span><strong>{seasons.length}</strong> {seasons.length === 1 ? 'season' : 'seasons'}</span>
+            {active && <span className="live-dot"><i />{active.name}</span>}
+          </div>
+        </div>
+      </section>
+
       <p className="muted">
         Pick the round you just played, then select your team, photograph the scorecard, correct any cells the AI misread, and submit. Share the verify QR with another team on the same card to lock the scores.
       </p>
+
       {loading && <p>Loading...</p>}
 
       {seasons.length > 0 && (
         <div className="card">
-          <label htmlFor="season">Season</label>
-          <select id="season" value={activeSeason} onChange={e => { setActiveSeason(e.target.value); setActiveWeek('') }}>
-            {seasons.map(s => <option key={s.id} value={s.id}>{s.name}{isCurrent(s) ? ' (current)' : ''}</option>)}
-          </select>
+          <div className="field">
+            <label htmlFor="season">Season</label>
+            <select id="season" value={activeSeason} onChange={e => { setActiveSeason(e.target.value); setActiveWeek('') }}>
+              {seasons.map(s => <option key={s.id} value={s.id}>{s.name}{isCurrent(s) ? ' (current)' : ''}</option>)}
+            </select>
+          </div>
           {weeks.length > 0 && (
-            <>
-              <label htmlFor="week" style={{ marginTop: 12 }}>Week</label>
+            <div className="field" style={{ marginTop: 12 }}>
+              <label htmlFor="week">Week</label>
               <select id="week" value={activeWeek} onChange={e => setActiveWeek(e.target.value)}>
                 {weeks.map(w => <option key={w.id} value={w.id}>Week {w.week_no}{w.theme ? ` — ${w.theme}` : ''}{w.game_date ? ` (${w.game_date})` : ''}</option>)}
               </select>
-            </>
+            </div>
           )}
         </div>
       )}
       {!loading && seasons.length === 0 && <p>No seasons yet.</p>}
 
-      {week && active && (
+      {week && (
         <>
-          <h2>{active.name}</h2>
-          <div className="card">
-            <h3>Week {week.week_no}{week.theme ? ` — ${week.theme}` : ''}</h3>
-            {week.game_date && <div className="small muted" style={{ marginBottom: 8 }}>{week.game_date}</div>}
-            <div className="chips">
-              {['aces', 'duffleboard', 'minigolf'].map(r => (
-                <Link key={r} to={`/upload/${week.id}/${r}`} className="chip">{r}</Link>
-              ))}
-            </div>
+          <h2>Week {week.week_no}{week.theme ? ` — ${week.theme}` : ''}</h2>
+          {week.game_date && <p className="small muted" style={{ marginTop: -6 }}>{week.game_date}</p>}
+          <div className="round-grid">
+            {ROUNDS.map(r => (
+              <Link key={r.key} to={`/upload/${week.id}/${r.key}`} className="round-card">
+                <span className="round-icon">{r.icon}</span>
+                <span className="round-name">{r.label}</span>
+                <span className="small muted">{r.blurb}</span>
+              </Link>
+            ))}
           </div>
         </>
       )}

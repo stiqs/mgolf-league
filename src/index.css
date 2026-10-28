@@ -189,3 +189,45 @@ td select { min-width: 140px; }
 
 @keyframes rise { to { opacity: 1; transform: translateY(0); } }
 @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.35; } }
+
+/* League landing */
+.league-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  border-radius: 16px;
+  margin-bottom: 12px;
+  background:
+    radial-gradient(120% 120% at 10% 0%, rgba(56,189,248,0.20), transparent 55%),
+    linear-gradient(150deg, #1e293b, #131c2e 75%);
+  border: 1px solid rgba(148,163,184,0.16);
+}
+.league-badge.big { width: 56px; height: 56px; border-radius: 16px; font-size: 1.5rem; }
+.field label { margin-bottom: 4px; }
+
+.round-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.round-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px 8px;
+  border-radius: 14px;
+  text-align: center;
+  text-decoration: none;
+  color: inherit;
+  background: linear-gradient(160deg, #243247, #172033);
+  border: 1px solid rgba(148,163,184,0.16);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+.round-card:active { transform: scale(0.97); border-color: var(--accent); }
+.round-icon { font-size: 1.6rem; line-height: 1; }
+.round-name { font-weight: 600; font-size: 0.95rem; }
+@media (max-width: 360px) {
+  .round-grid { grid-template-columns: 1fr; }
+}
