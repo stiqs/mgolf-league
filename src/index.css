@@ -208,7 +208,7 @@ td select { min-width: 140px; }
 
 .round-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 .round-card {
@@ -231,3 +231,15 @@ td select { min-width: 140px; }
 @media (max-width: 360px) {
   .round-grid { grid-template-columns: 1fr; }
 }
+
+/* Week QR grid: three equal centered columns */
+.qr-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  justify-items: center;
+  margin-top: 12px;
+}
+.qr-grid > div { width: 100%; min-width: 0; }
+.qr-grid .small { font-size: 0.7rem; overflow-wrap: anywhere; }
+.qr-grid svg { width: 100%; height: auto; display: block; }

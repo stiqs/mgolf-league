@@ -312,10 +312,10 @@ export default function Admin() {
               {w.game_date && <span className="small muted">{w.game_date}</span>}
             </div>
             <input value={w.theme ?? ''} onChange={e => updateTheme(w.id, e.target.value)} placeholder="theme" style={{ marginTop: 8 }} />
-            <div className="chips" style={{ marginTop: 12 }}>
+            <div className="qr-grid">
               {['aces','duffleboard','minigolf'].map(r => (
                 <div key={r} style={{ textAlign: 'center' }}>
-                  <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} marginSize={4} />
+                  <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={100} marginSize={4} />
                   <div className="small">{r}</div>
                 </div>
               ))}
