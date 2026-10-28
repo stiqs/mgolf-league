@@ -132,7 +132,12 @@ export default function Admin() {
       d.setUTCDate(d.getUTCDate() + i * 7)
       return { season_id: season.id, week_no: i + 1, game_date: d.toISOString().slice(0, 10), theme: '' }
     })
-    await supabase.from('weeks').insert(rows)
+    const { data: createdWeeks } = await supabase.from('weeks').insert(rows).select('id')
+    if (createdWeeks?.length) {
+      const rounds = createdWeeks.flatMap(w => ['aces', 'duffleboard', 'minigolf'].map(type => ({ week_id: w.id, type })))
+      const { error: roundsErr } = await supabase.from('mg_rounds').insert(rounds)
+      if (roundsErr) alert('Season created, but rounds failed to seed: ' + roundsErr.message)
+    }
     await loadSeasons()
     setActiveSeason(season.id)
   }
