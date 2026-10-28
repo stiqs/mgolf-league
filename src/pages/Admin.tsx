@@ -104,7 +104,14 @@ export default function Admin() {
   const createLeague = async () => {
     const name = prompt('League name?')
     if (!name) return
-    const { data: league } = await supabase.from('leagues').insert({ name, owner_user_id: session.user.id }).select('id').single()
+    const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'league'
+    let slug = base
+    for (let i = 0; i < 50; i++) {
+      const { data: exists } = await supabase.from('leagues').select('id').eq('slug', slug).maybeSingle()
+      if (!exists) break
+      slug = `${base}-${i + 2}`
+    }
+    const { data: league } = await supabase.from('leagues').insert({ name, slug, owner_user_id: session.user.id }).select('id').single()
     if (!league) return
     await supabase.from('teams').insert(LEAGUE_TEAMS.map((t, i) => ({ name: t, sort_order: i, league_id: league.id })))
     await loadLeagues()
