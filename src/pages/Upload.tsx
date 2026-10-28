@@ -258,7 +258,7 @@ export default function Upload() {
       {verifyUrl && (
         <div className="card" style={{ textAlign: 'center' }}>
           <p>Share this with another team on the card so they can attest and lock it:</p>
-          <QRCodeSVG value={verifyUrl} size={200} />
+          <QRCodeSVG value={verifyUrl} size={200} marginSize={4} />
           <div className="small muted" style={{ wordBreak: 'break-all', marginTop: 8 }}>{verifyUrl}</div>
         </div>
       )}

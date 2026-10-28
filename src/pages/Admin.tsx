@@ -223,7 +223,7 @@ export default function Admin() {
           return (
             <div style={{ marginTop: 16, textAlign: 'center' }}>
               <div className="small muted" style={{ marginBottom: 8 }}>Share this league</div>
-              <QRCodeSVG value={url} size={140} />
+              <QRCodeSVG value={url} size={140} marginSize={4} />
               <div className="small muted" style={{ wordBreak: 'break-all', marginTop: 8 }}>{url}</div>
             </div>
           )
@@ -267,7 +267,7 @@ export default function Admin() {
             <div className="chips" style={{ marginTop: 12 }}>
               {['aces','duffleboard','minigolf'].map(r => (
                 <div key={r} style={{ textAlign: 'center' }}>
-                  <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} />
+                  <QRCodeSVG value={`${window.location.origin}/upload/${w.id}/${r}`} size={80} marginSize={4} />
                   <div className="small">{r}</div>
                 </div>
               ))}
