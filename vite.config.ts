@@ -27,8 +27,8 @@ export default defineConfig({
         ],
       },
       manifest: {
-        name: 'mgolf league',
-        short_name: 'mgolf',
+        name: 'Par-Tee Tracker',
+        short_name: 'Par-Tee',
         start_url: '/',
         display: 'standalone',
         background_color: '#0f172a',
