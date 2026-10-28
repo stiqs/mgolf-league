@@ -110,3 +110,40 @@ alter publication supabase_realtime add table score_entries;
 alter publication supabase_realtime add table attestations;
 SQL
 ssh root@supabase.muzoapps.com 'docker exec -i supabase-db psql -U postgres -d postgres' < /home/stiqs/git/mgolf-league/schema.sql 2>&1 | tail -15
+-- ---------------------------------------------------------------------------
+-- Added after initial deploy (kept here so a fresh apply matches production).
+-- ---------------------------------------------------------------------------
+
+create table if not exists leagues (
+  id uuid primary key default gen_random_uuid(),
+  name text not null,
+  slug text unique,
+  owner_user_id uuid,
+  created_at timestamptz default now()
+);
+
+create table if not exists league_members (
+  league_id uuid references leagues(id) on delete cascade,
+  user_id uuid,
+  role text not null default 'member' check (role in ('owner','admin','member')),
+  created_at timestamptz default now(),
+  primary key (league_id, user_id)
+);
+
+create table if not exists admins (
+  email text primary key,
+  created_at timestamptz default now()
+);
+
+alter table seasons add column if not exists league_id uuid references leagues(id) on delete cascade;
+alter table seasons add column if not exists number_of_weeks int;
+alter table teams add column if not exists league_id uuid references leagues(id) on delete cascade;
+alter table weeks add column if not exists theme text;
+
+-- team names are unique per league, not globally
+alter table teams drop constraint if exists teams_name_key;
+create unique index if not exists teams_league_name_uidx on teams(league_id, name);
+
+alter table leagues enable row level security;
+alter table league_members enable row level security;
+alter table admins enable row level security;
