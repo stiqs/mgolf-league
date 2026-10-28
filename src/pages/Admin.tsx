@@ -216,6 +216,18 @@ export default function Admin() {
           <button onClick={createLeague}>Create league</button>
           <button onClick={signOut}>Sign out</button>
         </div>
+        {(() => {
+          const l = leagues.find(x => x.id === activeLeague)
+          if (!l?.slug) return null
+          const url = `${window.location.origin}/l/${l.slug}`
+          return (
+            <div style={{ marginTop: 16, textAlign: 'center' }}>
+              <div className="small muted" style={{ marginBottom: 8 }}>Share this league</div>
+              <QRCodeSVG value={url} size={140} />
+              <div className="small muted" style={{ wordBreak: 'break-all', marginTop: 8 }}>{url}</div>
+            </div>
+          )
+        })()}
       </div>
 
       <div className="card">
