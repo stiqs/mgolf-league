@@ -242,4 +242,4 @@ td select { min-width: 140px; }
 }
 .qr-grid > div { width: 100%; min-width: 0; }
 .qr-grid .small { font-size: 0.7rem; overflow-wrap: anywhere; }
-.qr-grid svg { width: 100%; height: auto; display: block; }
+.qr-grid svg { width: 100%; height: auto; max-width: 100px; display: block; }
