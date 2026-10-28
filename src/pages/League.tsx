@@ -8,9 +8,43 @@ type Season = { id: string; name: string; start_date: string | null; number_of_w
 type League = { id: string; name: string; slug: string }
 
 const ROUNDS = [
-  { key: 'aces', label: 'Aces', icon: '🎯', blurb: 'Closest to the pin' },
-  { key: 'duffleboard', label: 'Duffleboard', icon: '🎲', blurb: 'Slide to score' },
-  { key: 'minigolf', label: 'Mini-golf', icon: '⛳', blurb: 'Classic 9 holes' },
+  {
+    key: 'aces',
+    label: 'Aces',
+    blurb: 'One shot per hole',
+    icon: (
+      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <circle cx="24" cy="24" r="16" />
+        <circle cx="24" cy="24" r="9" />
+        <circle cx="24" cy="24" r="3.2" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    key: 'duffleboard',
+    label: 'Duffleboard',
+    blurb: 'Tabletop golf, one shot',
+    icon: (
+      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <rect x="5" y="20" width="38" height="19" rx="4" />
+        <circle cx="18" cy="29.5" r="4.5" fill="currentColor" stroke="none" />
+        <line x1="33" y1="13" x2="40" y2="27" />
+        <circle cx="33" cy="13" r="2.4" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    key: 'minigolf',
+    label: 'Mini-golf',
+    blurb: '9 holes, stroke play',
+    icon: (
+      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+        <line x1="19" y1="9" x2="19" y2="36" />
+        <path d="M19 9 L36 15 L19 21 Z" fill="currentColor" stroke="none" />
+        <ellipse cx="28" cy="38" rx="13" ry="3.2" />
+      </svg>
+    ),
+  },
 ] as const
 
 function isCurrent(s: Season, today = new Date()): boolean {
