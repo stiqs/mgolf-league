@@ -30,6 +30,8 @@ export default function Admin() {
   const [weeks, setWeeks] = useState<any[]>([])
   const [scorecards, setScorecards] = useState<any[]>([])
   const [admins, setAdmins] = useState<any[]>([])
+  const [leagueAdmins, setLeagueAdmins] = useState<{ email: string; role: string }[]>([])
+  const [adminEmail, setAdminEmail] = useState('')
   const [newAdmin, setNewAdmin] = useState('')
   const [seasonStart, setSeasonStart] = useState('')
   const [seasonWeeks, setSeasonWeeks] = useState(8)
@@ -100,7 +102,13 @@ export default function Admin() {
     const { data } = await supabase.from('admins').select('email').order('email')
     setAdmins(data ?? [])
   }
+  const loadLeagueAdmins = async () => {
+    if (!activeLeague) { setLeagueAdmins([]); return }
+    const { data } = await supabase.rpc('list_league_admins', { p_league: activeLeague })
+    setLeagueAdmins((data as { email: string; role: string }[]) ?? [])
+  }
   useEffect(() => { if (session && canManage) { loadLeagues(); loadAdmins() } }, [session, canManage])
+  useEffect(() => { if (session && canManage && activeLeague) loadLeagueAdmins() }, [session, canManage, activeLeague])
   useEffect(() => { if (session && canManage && activeLeague) loadSeasons() }, [session, canManage, activeLeague])
   useEffect(() => { if (session && canManage && activeSeason) load() }, [session, canManage, activeSeason])
 
@@ -188,6 +196,19 @@ export default function Admin() {
     setNewAdmin('')
     loadAdmins()
   }
+  const addLeagueAdmin = async () => {
+    if (!activeLeague || !adminEmail) return
+    const { error } = await supabase.rpc('add_league_admin', { p_league: activeLeague, p_email: adminEmail })
+    if (error) { alert(error.message); return }
+    setAdminEmail('')
+    loadLeagueAdmins()
+  }
+  const removeLeagueAdmin = async (email: string) => {
+    if (!activeLeague) return
+    const { error } = await supabase.rpc('remove_league_admin', { p_league: activeLeague, p_email: email })
+    if (error) { alert(error.message); return }
+    loadLeagueAdmins()
+  }
   const signOut = async () => { await supabase.auth.signOut() }
 
   if (!session) {
@@ -251,6 +272,22 @@ export default function Admin() {
           <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} placeholder="weeks" />
           <button onClick={createSeason} className="primary">Create season</button>
         </div>
+      </div>
+
+      <h2>League admins</h2>
+      <div className="card">
+        {leagueAdmins.length === 0 && <div className="small muted">No admins yet.</div>}
+        {leagueAdmins.map(a => (
+          <div key={a.email} className="row" style={{ justifyContent: 'space-between', padding: '4px 0' }}>
+            <span className="small">{a.email} <span className="muted">({a.role})</span></span>
+            {a.role !== 'owner' && <button onClick={() => removeLeagueAdmin(a.email)}>remove</button>}
+          </div>
+        ))}
+        <div className="stack-mobile" style={{ marginTop: 12 }}>
+          <input value={adminEmail} onChange={e => setAdminEmail(e.target.value)} placeholder="email to add as league admin" type="email" />
+          <button onClick={addLeagueAdmin}>Add league admin</button>
+        </div>
+        <p className="small muted" style={{ marginTop: 8 }}>The person must have signed up already.</p>
       </div>
 
       <h2>Weeks</h2>

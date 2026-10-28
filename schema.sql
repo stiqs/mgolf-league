@@ -228,3 +228,42 @@ create policy teams_delete on teams for delete to authenticated using (is_global
 -- Allow a new owner to add their own membership row
 drop policy if exists lm_insert on league_members;
 create policy lm_insert on league_members for insert to authenticated with check (is_global_admin() or is_league_admin(league_id) or exists (select 1 from leagues l where l.id = league_id and l.owner_user_id = auth.uid()));
+
+-- League admin management (email → user id, security definer)
+create or replace function add_league_admin(p_league uuid, p_email text) returns void
+language plpgsql security definer set search_path = public as $$
+declare uid uuid;
+begin
+  if not (is_global_admin() or is_league_admin(p_league)) then
+    raise exception 'not authorized';
+  end if;
+  select id into uid from auth.users where email = p_email;
+  if uid is null then raise exception 'no user with that email'; end if;
+  insert into league_members (league_id, user_id, role) values (p_league, uid, 'admin')
+  on conflict (league_id, user_id) do update set role = 'admin';
+end $$;
+
+create or replace function remove_league_admin(p_league uuid, p_email text) returns void
+language plpgsql security definer set search_path = public as $$
+declare uid uuid;
+begin
+  if not (is_global_admin() or is_league_admin(p_league)) then
+    raise exception 'not authorized';
+  end if;
+  select id into uid from auth.users where email = p_email;
+  if uid is null then return; end if;
+  delete from league_members where league_id = p_league and user_id = uid and role <> 'owner';
+end $$;
+
+create or replace function list_league_admins(p_league uuid) returns table(email text, role text)
+language sql security definer set search_path = public as $$
+  select u.email, m.role
+  from league_members m
+  join auth.users u on u.id = m.user_id
+  where m.league_id = p_league and m.role in ('owner','admin')
+  order by m.role, u.email
+$$;
+
+grant execute on function add_league_admin(uuid, text) to authenticated;
+grant execute on function remove_league_admin(uuid, text) to authenticated;
+grant execute on function list_league_admins(uuid) to authenticated;
