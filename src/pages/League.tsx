@@ -13,10 +13,17 @@ const ROUNDS = [
     label: 'Aces',
     blurb: 'One shot per hole',
     icon: (
-      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <circle cx="24" cy="24" r="16" />
-        <circle cx="24" cy="24" r="9" />
-        <circle cx="24" cy="24" r="3.2" fill="currentColor" stroke="none" />
+      <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+        <defs>
+          <radialGradient id="acesGrad" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#4ade80" />
+            <stop offset="1" stopColor="#38bdf8" />
+          </radialGradient>
+        </defs>
+        <circle cx="32" cy="32" r="25" fill="none" stroke="#38bdf8" strokeWidth="3" opacity="0.9" />
+        <circle cx="32" cy="32" r="16" fill="none" stroke="#4ade80" strokeWidth="3" opacity="0.9" />
+        <circle cx="32" cy="32" r="7" fill="url(#acesGrad)" />
+        <circle cx="29.5" cy="29.5" r="2" fill="#0b1220" opacity="0.35" />
       </svg>
     ),
   },
@@ -25,11 +32,22 @@ const ROUNDS = [
     label: 'Duffleboard',
     blurb: 'Tabletop golf, one shot',
     icon: (
-      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <rect x="5" y="20" width="38" height="19" rx="4" />
-        <circle cx="18" cy="29.5" r="4.5" fill="currentColor" stroke="none" />
-        <line x1="33" y1="13" x2="40" y2="27" />
-        <circle cx="33" cy="13" r="2.4" fill="currentColor" stroke="none" />
+      <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+        <defs>
+          <linearGradient id="duffTable" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#3b4a63" />
+            <stop offset="1" stopColor="#243247" />
+          </linearGradient>
+          <radialGradient id="duffBall" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#94a3b8" />
+          </radialGradient>
+        </defs>
+        <rect x="5" y="28" width="54" height="26" rx="7" fill="url(#duffTable)" stroke="#38bdf8" strokeWidth="2.5" />
+        <ellipse cx="46" cy="43" rx="7" ry="3.5" fill="#0b1220" />
+        <circle cx="18" cy="43" r="7" fill="url(#duffBall)" />
+        <line x1="45" y1="12" x2="54" y2="36" stroke="#4ade80" strokeWidth="4.5" strokeLinecap="round" />
+        <circle cx="45" cy="12" r="4.5" fill="#4ade80" />
       </svg>
     ),
   },
@@ -38,10 +56,21 @@ const ROUNDS = [
     label: 'Mini-golf',
     blurb: '9 holes, stroke play',
     icon: (
-      <svg viewBox="0 0 48 48" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-        <line x1="19" y1="9" x2="19" y2="36" />
-        <path d="M19 9 L36 15 L19 21 Z" fill="currentColor" stroke="none" />
-        <ellipse cx="28" cy="38" rx="13" ry="3.2" />
+      <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
+        <defs>
+          <linearGradient id="mgFlag" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#38bdf8" />
+            <stop offset="1" stopColor="#4ade80" />
+          </linearGradient>
+          <radialGradient id="mgBall" cx="0.35" cy="0.3" r="0.8">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="1" stopColor="#94a3b8" />
+          </radialGradient>
+        </defs>
+        <ellipse cx="34" cy="50" rx="19" ry="5" fill="#0b1220" />
+        <rect x="23" y="9" width="4" height="41" rx="2" fill="#e2e8f0" />
+        <path d="M27 11 L53 22 L27 33 Z" fill="url(#mgFlag)" />
+        <circle cx="41" cy="48" r="5.5" fill="url(#mgBall)" />
       </svg>
     ),
   },

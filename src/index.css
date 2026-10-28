@@ -226,7 +226,7 @@ td select { min-width: 140px; }
   transition: transform 0.15s ease, border-color 0.15s ease;
 }
 .round-card:active { transform: scale(0.97); border-color: var(--accent); }
-.round-icon { font-size: 1.6rem; line-height: 1; color: var(--accent); display: flex; }
+.round-icon { line-height: 1; display: flex; filter: drop-shadow(0 4px 10px rgba(56,189,248,0.28)); }
 .round-name { font-weight: 600; font-size: 0.95rem; }
 @media (max-width: 360px) {
   .round-grid { grid-template-columns: 1fr; }
