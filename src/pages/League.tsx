@@ -16,12 +16,12 @@ const ROUNDS = [
       <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
         <defs>
           <radialGradient id="acesGrad" cx="0.5" cy="0.5" r="0.5">
-            <stop offset="0" stopColor="#4ade80" />
-            <stop offset="1" stopColor="#38bdf8" />
+            <stop offset="0" stopColor="#facc15" />
+            <stop offset="1" stopColor="#f59e0b" />
           </radialGradient>
         </defs>
-        <circle cx="32" cy="32" r="25" fill="none" stroke="#38bdf8" strokeWidth="3" opacity="0.9" />
-        <circle cx="32" cy="32" r="16" fill="none" stroke="#4ade80" strokeWidth="3" opacity="0.9" />
+        <circle cx="32" cy="32" r="25" fill="none" stroke="#facc15" strokeWidth="3" opacity="0.9" />
+        <circle cx="32" cy="32" r="16" fill="none" stroke="#f59e0b" strokeWidth="3" opacity="0.9" />
         <circle cx="32" cy="32" r="7" fill="url(#acesGrad)" />
         <circle cx="29.5" cy="29.5" r="2" fill="#0b1220" opacity="0.35" />
       </svg>
@@ -59,8 +59,8 @@ const ROUNDS = [
       <svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true">
         <defs>
           <linearGradient id="mgFlag" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#38bdf8" />
-            <stop offset="1" stopColor="#4ade80" />
+            <stop offset="0" stopColor="#ef4444" />
+            <stop offset="1" stopColor="#b91c1c" />
           </linearGradient>
           <radialGradient id="mgBall" cx="0.35" cy="0.3" r="0.8">
             <stop offset="0" stopColor="#ffffff" />
