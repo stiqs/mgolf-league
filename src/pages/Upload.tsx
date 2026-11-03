@@ -35,24 +35,46 @@ export default function Upload() {
     }).catch(e => setStatus(String(e)))
   }, [weekId, round])
   const onFile = (f: File) => {
+    // Make the file selectable immediately so Parse isn't disabled while
+    // the (possibly slow) canvas conversion runs.
+    setFile(f)
+    const quickReader = new FileReader()
+    quickReader.onload = () => setPreview(prev => prev ?? (quickReader.result as string))
+    quickReader.readAsDataURL(f)
     const url = URL.createObjectURL(f)
     const img = new Image()
     img.onload = () => {
-      const canvas = document.createElement('canvas')
-      canvas.width = img.naturalWidth
-      canvas.height = img.naturalHeight
-      const ctx = canvas.getContext('2d')
-      if (!ctx) { URL.revokeObjectURL(url); setFile(f); const r = new FileReader(); r.onload = () => setPreview(r.result as string); r.readAsDataURL(f); return }
-      ctx.drawImage(img, 0, 0)
-      URL.revokeObjectURL(url)
-      canvas.toBlob(blob => {
-        if (!blob) { setFile(f); const r = new FileReader(); r.onload = () => setPreview(r.result as string); r.readAsDataURL(f); return }
-        const oriented = new File([blob], f.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
-        setFile(oriented)
+      try {
+        const MAX = 1600
+        let w = img.naturalWidth || img.width
+        let h = img.naturalHeight || img.height
+        if (w > MAX || h > MAX) {
+          const scale = Math.min(MAX / w, MAX / h)
+          w = Math.round(w * scale)
+          h = Math.round(h * scale)
+        }
+        const canvas = document.createElement('canvas')
+        canvas.width = w
+        canvas.height = h
+        const ctx = canvas.getContext('2d')
+        if (!ctx) throw new Error('no canvas context')
+        ctx.drawImage(img, 0, 0, w, h)
+        URL.revokeObjectURL(url)
+        canvas.toBlob(blob => {
+          if (!blob) { setFile(f); const r = new FileReader(); r.onload = () => setPreview(r.result as string); r.readAsDataURL(f); return }
+          const oriented = new File([blob], f.name.replace(/\.[^.]+$/, '.jpg'), { type: 'image/jpeg' })
+          setFile(oriented)
+          const r = new FileReader()
+          r.onload = () => setPreview(r.result as string)
+          r.readAsDataURL(oriented)
+        }, 'image/jpeg', 0.92)
+      } catch (e) {
+        URL.revokeObjectURL(url)
+        setFile(f)
         const r = new FileReader()
         r.onload = () => setPreview(r.result as string)
-        r.readAsDataURL(oriented)
-      }, 'image/jpeg', 0.92)
+        r.readAsDataURL(f)
+      }
     }
     img.onerror = () => {
       URL.revokeObjectURL(url)
@@ -136,32 +158,36 @@ export default function Upload() {
   const parse = async () => {
     if (!file || !preview || !roundId || !submitter) { setStatus('Pick team and photo first'); return }
     setStatus('Uploading...')
-    const path = `${roundId}/${Date.now()}-${file.name}`
-    const { error: upErr } = await supabase.storage.from('scorecards').upload(path, file)
-    if (upErr) { setStatus('Upload error: ' + upErr.message); return }
-    setStatus('Creating card...')
-    const { data: sc, error: scErr } = await supabase.from('scorecards').insert({
-      round_id: roundId, image_path: path, submitter_team_id: submitter, status: 'pending'
-    }).select('id,verify_token').single()
-    if (scErr || !sc) { setStatus('DB error: ' + (scErr?.message ?? 'no row')); return }
-    setScorecardId(sc.id); setVerifyToken(sc.verify_token)
-    setStatus('Parsing with AI...')
-    const { data: parsedData, error: fnErr } = await supabase.functions.invoke('parse-scorecard', { body: { image: preview, teams: teams.map(t => t.name) } })
-    if (fnErr) { setStatus('Parse error: ' + fnErr.message); return }
-    const parsedRes = parsedData as { teams: string[]; team_matches?: (string | null)[]; scores: (number | null)[][]; confidence?: number[] }
-    const rows: ParsedRow[] = (parsedRes.teams).map((t, i) => ({
-      team: parsedRes.team_matches?.[i] ?? t, scores: parsedRes.scores[i], confidence: parsedRes.confidence?.[i] ?? 50
-    }))
-    setParsed(rows)
-    const entries: { scorecard_id: string; team_id: string | null; hole: number; strokes: number | null; confidence: number }[] = []
-    rows.forEach(r => {
-      const teamMatch = teams.find(t => t.name.toLowerCase() === r.team.toLowerCase())?.id ?? null
-      r.scores.forEach((s, hi) => {
-        entries.push({ scorecard_id: sc.id, team_id: teamMatch, hole: hi + 1, strokes: s, confidence: r.confidence })
+    try {
+      const path = `${roundId}/${Date.now()}-${file.name}`
+      const { error: upErr } = await supabase.storage.from('scorecards').upload(path, file)
+      if (upErr) { setStatus('Upload error: ' + upErr.message); return }
+      setStatus('Creating card...')
+      const { data: sc, error: scErr } = await supabase.from('scorecards').insert({
+        round_id: roundId, image_path: path, submitter_team_id: submitter, status: 'pending'
+      }).select('id,verify_token').single()
+      if (scErr || !sc) { setStatus('DB error: ' + (scErr?.message ?? 'no row')); return }
+      setScorecardId(sc.id); setVerifyToken(sc.verify_token)
+      setStatus('Parsing with AI...')
+      const { data: parsedData, error: fnErr } = await supabase.functions.invoke('parse-scorecard', { body: { image: preview, teams: teams.map(t => t.name) } })
+      if (fnErr) { setStatus('Parse error: ' + fnErr.message); return }
+      const parsedRes = parsedData as { teams: string[]; team_matches?: (string | null)[]; scores: (number | null)[][]; confidence?: number[] }
+      const rows: ParsedRow[] = (parsedRes.teams).map((t, i) => ({
+        team: parsedRes.team_matches?.[i] ?? t, scores: parsedRes.scores[i], confidence: parsedRes.confidence?.[i] ?? 50
+      }))
+      setParsed(rows)
+      const entries: { scorecard_id: string; team_id: string | null; hole: number; strokes: number | null; confidence: number }[] = []
+      rows.forEach(r => {
+        const teamMatch = teams.find(t => t.name.toLowerCase() === r.team.toLowerCase())?.id ?? null
+        r.scores.forEach((s: number | null, hi: number) => {
+          entries.push({ scorecard_id: sc.id, team_id: teamMatch, hole: hi + 1, strokes: s, confidence: r.confidence })
+        })
       })
-    })
-    if (entries.length) await supabase.from('score_entries').insert(entries)
-    setStatus('Parsed. Correct any cells, then submit.')
+      if (entries.length) await supabase.from('score_entries').insert(entries)
+      setStatus('Parsed. Correct any cells, then submit.')
+    } catch (e) {
+      setStatus('Error: ' + String(e))
+    }
   }
 
   const updateCell = (ri: number, hi: number, val: string) => {
