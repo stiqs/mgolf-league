@@ -3,6 +3,7 @@ import Home from './pages/Home'
 import League from './pages/League'
 import Upload from './pages/Upload'
 import Verify from './pages/Verify'
+import Cards from './pages/Cards'
 import Admin from './pages/Admin'
 
 export default function App() {
@@ -11,6 +12,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/l/:slug" element={<League />} />
       <Route path="/upload/:weekId/:round" element={<Upload />} />
+      <Route path="/cards/:weekId/:round" element={<Cards />} />
       <Route path="/verify/:id" element={<Verify />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<Navigate to="/" replace />} />

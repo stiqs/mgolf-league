@@ -188,11 +188,14 @@ export default function League() {
           {week.game_date && <p className="small muted" style={{ marginTop: -6 }}>{week.game_date}</p>}
           <div className="round-grid">
             {ROUNDS.map(r => (
-              <Link key={r.key} to={`/upload/${week.id}/${r.key}`} className="round-card">
-                <span className="round-icon">{r.icon}</span>
-                <span className="round-name">{r.label}</span>
-                <span className="small muted">{r.blurb}</span>
-              </Link>
+              <div key={r.key} className="round-card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Link to={`/upload/${week.id}/${r.key}`} style={{ display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none', color: 'inherit' }}>
+                  <span className="round-icon">{r.icon}</span>
+                  <span className="round-name">{r.label}</span>
+                  <span className="small muted">{r.blurb}</span>
+                </Link>
+                <Link to={`/cards/${week.id}/${r.key}`} className="small" style={{ alignSelf: 'flex-start' }}>View cards →</Link>
+              </div>
             ))}
           </div>
         </>
