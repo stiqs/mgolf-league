@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { bestCardsForRounds } from '../lib/bestCards'
 import Header from '../components/Header'
 
 type Recorded = Record<string, Set<string>> // week_id -> team_ids present
@@ -33,55 +34,28 @@ export default function SeasonTracker() {
       setWeeks(ws ?? [])
       setAllWeeks((s.number_of_weeks ?? ws?.length ?? 0))
 
-      const weekIds = (ws ?? []).map(w => w.id)
       const recorded: Recorded = {}
       const strokesByTeam: Record<string, number> = {}
+      const weekIds = (ws ?? []).map(w => w.id)
       if (weekIds.length) {
         const { data: rounds } = await supabase.from('mg_rounds').select('id,week_id').in('week_id', weekIds)
         const roundIds = (rounds ?? []).map(r => r.id)
-        const { data: scorecards } = await supabase.from('scorecards').select('id,status,created_at,round_id').in('round_id', roundIds)
-        // pick one card per (round, team): locked preferred, else newest
-        const best = new Map<string, { cardId: string; status: string; created_at: string }>()
-        for (const sc of scorecards ?? []) {
-          const { data: entries } = await supabase.from('score_entries').select('team_id').eq('scorecard_id', sc.id)
-          const teams = new Set((entries ?? []).map(e => e.team_id).filter(Boolean) as string[])
-          for (const tid of teams) {
-            const key = `${sc.round_id}:${tid}`
-            const prev = best.get(key)
-            const prefer = sc.status === 'locked' && prev?.status !== 'locked'
-            if (!prev || prefer || (prev.status === sc.status && sc.created_at > prev.created_at)) {
-              best.set(key, { cardId: sc.id, status: sc.status, created_at: sc.created_at })
-            }
-          }
-        }
-        // now sum strokes per team across chosen cards, only submitted/locked
-        const chosenCardIds = new Set([...best.values()].map(v => v.cardId))
-        const { data: chosenCards } = await supabase.from('scorecards').select('id,status').in('id', [...chosenCardIds])
-        const statusById = new Map((chosenCards ?? []).map(c => [c.id, c.status]))
-        for (const [key, info] of best) {
-          const st = statusById.get(info.cardId)
-          if (st !== 'submitted' && st !== 'locked') continue
-          const tid = key.split(':')[1]
-          const { data: entries } = await supabase.from('score_entries').select('hole,strokes').eq('scorecard_id', info.cardId).eq('team_id', tid)
-          const strokes = (entries ?? []).reduce((a, e) => a + (e.strokes ?? 0), 0)
-          strokesByTeam[tid] = (strokesByTeam[tid] ?? 0) + strokes
-        }
-        // recorded weeks per team
-        const teamWeeks = new Map<string, Set<string>>()
-        for (const [key] of best) {
-          const [roundId, tid] = key.split(':')
-          const weekId = rounds?.find(r => r.id === roundId)?.week_id
-          if (!weekId) continue
-          const info = best.get(key)!
-          const st = statusById.get(info.cardId)
-          if (st !== 'submitted' && st !== 'locked') continue
-          if (!teamWeeks.has(tid)) teamWeeks.set(tid, new Set())
-          teamWeeks.get(tid)!.add(weekId)
-        }
-        for (const [tid, wset] of teamWeeks) {
-          for (const wid of wset) {
+        const best = await bestCardsForRounds(roundIds)
+        const chosenCardIds = [...new Set(best.values())]
+        if (chosenCardIds.length) {
+          const { data: entries } = await supabase.from('score_entries')
+            .select('scorecard_id,team_id,strokes')
+            .in('scorecard_id', chosenCardIds)
+          const weekByRound = new Map((rounds ?? []).map(r => [r.id, r.week_id]))
+          for (const e of entries ?? []) {
+            const key = [...best].find(([, v]) => v === e.scorecard_id)?.[0]
+            if (!key) continue
+            const roundId = key.split(':')[0]
+            const wid = weekByRound.get(roundId)
+            if (!wid) continue
             if (!recorded[wid]) recorded[wid] = new Set()
-            recorded[wid].add(tid)
+            recorded[wid].add(e.team_id)
+            strokesByTeam[e.team_id] = (strokesByTeam[e.team_id] ?? 0) + (e.strokes ?? 0)
           }
         }
       }

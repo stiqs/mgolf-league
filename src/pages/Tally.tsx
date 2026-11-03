@@ -27,12 +27,14 @@ export default function Tally() {
         const { data: scs } = await supabase.from('scorecards').select('id,status,created_at').eq('round_id', rid).order('created_at', { ascending: false })
         const m = new Map<string, { cardId: string; created_at: string; status: string }>()
         for (const sc of scs ?? []) {
+          if (sc.status !== 'submitted' && sc.status !== 'locked') continue
           const { data: entries } = await supabase.from('score_entries').select('team_id').eq('scorecard_id', sc.id)
           const teams = new Set((entries ?? []).map(e => e.team_id).filter(Boolean) as string[])
           for (const tid of teams) {
             const prev = m.get(tid)
             const prefer = sc.status === 'locked' && prev?.status !== 'locked'
-            if (!prev || prefer) m.set(tid, { cardId: sc.id, created_at: sc.created_at, status: sc.status })
+            const newerSame = prev && prev.status === sc.status && sc.created_at > prev.created_at
+            if (!prev || prefer || newerSame) m.set(tid, { cardId: sc.id, created_at: sc.created_at, status: sc.status })
           }
         }
         bestByRound[type] = m
