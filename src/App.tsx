@@ -5,6 +5,7 @@ import Upload from './pages/Upload'
 import Verify from './pages/Verify'
 import Tally from './pages/Tally'
 import Cards from './pages/Cards'
+import SeasonTracker from './pages/SeasonTracker'
 import Admin from './pages/Admin'
 
 export default function App() {
@@ -15,6 +16,7 @@ export default function App() {
       <Route path="/upload/:weekId/:round" element={<Upload />} />
       <Route path="/tally/:weekId" element={<Tally />} />
       <Route path="/cards/:weekId/:round" element={<Cards />} />
+      <Route path="/season-tracker/:seasonId" element={<SeasonTracker />} />
       <Route path="/verify/:id" element={<Verify />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<Navigate to="/" replace />} />
