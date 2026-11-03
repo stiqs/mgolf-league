@@ -267,3 +267,7 @@ $$;
 grant execute on function add_league_admin(uuid, text) to authenticated;
 grant execute on function remove_league_admin(uuid, text) to authenticated;
 grant execute on function list_league_admins(uuid) to authenticated;
+
+-- Storage RLS for scorecards bucket (anon upload/read)
+create policy "anon insert scorecards storage" on storage.objects for insert to anon with check (bucket_id = 'scorecards');
+create policy "anon select scorecards storage" on storage.objects for select to anon using (bucket_id = 'scorecards');
