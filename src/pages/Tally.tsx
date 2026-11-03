@@ -20,7 +20,6 @@ export default function Tally() {
       const roundByType: Record<string, string> = {}
       for (const r of rounds ?? []) roundByType[r.type] = r.id
 
-      // For each round, pick one best card per team (locked preferred, else newest).
       const bestByRound: Record<string, Map<string, { cardId: string; created_at: string; status: string }>> = {}
       for (const type of ['aces', 'duffleboard', 'minigolf']) {
         const rid = roundByType[type]
@@ -39,7 +38,6 @@ export default function Tally() {
         bestByRound[type] = m
       }
 
-      // totals per team per round
       const teamIds = new Set<string>()
       for (const m of Object.values(bestByRound)) for (const tid of m.keys()) teamIds.add(tid)
       const { data: teamRows } = await supabase.from('teams').select('id,name').in('id', [...teamIds])
@@ -71,23 +69,18 @@ export default function Tally() {
     <main>
       <Header title="Weekly tally" back />
       {rows.length === 0 && <p className="muted">No submitted cards yet.</p>}
-      <div className="card">
-        <table style={{ width: '100%', fontSize: 13, borderCollapse: 'collapse' }}>
-          <thead>
-            <tr><th style={{ textAlign: 'left' }}>Team</th><th>Aces</th><th>Duffle</th><th>Mini</th><th>Total</th></tr>
-          </thead>
-          <tbody>
-            {rows.map(r => (
-              <tr key={r.team}>
-                <td>{r.team}</td>
-                <td style={{ textAlign: 'center' }}>{r.aces ?? '—'}</td>
-                <td style={{ textAlign: 'center' }}>{r.duffleboard ?? '—'}</td>
-                <td style={{ textAlign: 'center' }}>{r.minigolf ?? '—'}</td>
-                <td style={{ textAlign: 'center', fontWeight: 600 }}>{r.total}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map(r => (
+          <div key={r.team} className="card" style={{ padding: 10 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6, wordBreak: 'break-word' }}>{r.team}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 4, textAlign: 'center', fontSize: 12 }}>
+              <div><div className="muted small">Aces</div><div>{r.aces ?? '—'}</div></div>
+              <div><div className="muted small">Duffle</div><div>{r.duffleboard ?? '—'}</div></div>
+              <div><div className="muted small">Mini</div><div>{r.minigolf ?? '—'}</div></div>
+              <div><div className="muted small">Total</div><div style={{ fontWeight: 600 }}>{r.total}</div></div>
+            </div>
+          </div>
+        ))}
       </div>
       <p className="small muted" style={{ marginTop: 8 }}>Per team: one card per round (locked preferred, else newest). Unmatched entries excluded.</p>
     </main>
