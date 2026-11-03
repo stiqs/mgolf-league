@@ -3,13 +3,8 @@ import { useParams, Link } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import Header from '../components/Header'
 
-type Card = {
-  id: string
-  status: string
-  image_path: string | null
-  created_at: string
-  entries: { team_id: string; team_name: string | null; total: number; holes: number[] }[]
-}
+type CardEntry = { team_id: string | null; team_name: string; total: number }
+type Card = { id: string; status: string; image_path: string | null; created_at: string; entries: CardEntry[] }
 
 export default function Cards() {
   const { weekId, round } = useParams()
@@ -26,15 +21,15 @@ export default function Cards() {
       const list: Card[] = []
       for (const sc of scs ?? []) {
         const { data: entries } = await supabase.from('score_entries').select('team_id,hole,strokes,teams(name)').eq('scorecard_id', sc.id)
-        const byTeam = new Map<string, { name: string | null; holes: number[] }>()
+        const byTeam = new Map<string, { name: string; holes: number[] }>()
         for (const e of entries ?? []) {
-          if (!byTeam.has(e.team_id)) byTeam.set(e.team_id, { name: (e as any).teams?.name ?? null, holes: [] })
-          const t = byTeam.get(e.team_id)!
-          t.holes[e.hole - 1] = e.strokes ?? 0
+          const key = e.team_id ?? '__unmatched__'
+          if (!byTeam.has(key)) byTeam.set(key, { name: e.team_id ? ((e as any).teams?.name ?? 'Unknown') : 'Unmatched', holes: [] })
+          byTeam.get(key)!.holes[e.hole - 1] = e.strokes ?? 0
         }
         list.push({
           id: sc.id, status: sc.status, image_path: sc.image_path, created_at: sc.created_at,
-          entries: [...byTeam.entries()].map(([tid, t]) => ({ team_id: tid, team_name: t.name, total: t.holes.reduce((a,b)=>a+(b||0),0), holes: t.holes }))
+          entries: [...byTeam.entries()].map(([tid, t]) => ({ team_id: tid === '__unmatched__' ? null : tid, team_name: t.name, total: t.holes.reduce((a, b) => a + (b || 0), 0) }))
         })
       }
       setCards(list)
@@ -59,10 +54,10 @@ export default function Cards() {
             </div>
             {img && <img src={img} alt="card" className="preview-img" style={{ marginTop: 8 }} />}
             <table style={{ width: '100%', marginTop: 8, fontSize: 13 }}>
-              <thead><tr><th style={{ textAlign:'left' }}>Team</th><th>Total</th></tr></thead>
+              <thead><tr><th style={{ textAlign: 'left' }}>Team</th><th>Total</th></tr></thead>
               <tbody>
-                {c.entries.map(e => (
-                  <tr key={e.team_id}><td>{e.team_name ?? e.team_id.slice(0,8)}</td><td style={{ textAlign:'center' }}>{e.total}</td></tr>
+                {c.entries.map((e, i) => (
+                  <tr key={i}><td>{e.team_name}</td><td style={{ textAlign: 'center' }}>{e.total}</td></tr>
                 ))}
               </tbody>
             </table>

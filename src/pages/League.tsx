@@ -186,6 +186,7 @@ export default function League() {
         <>
           <h2>Week {week.week_no}{week.theme ? ` — ${week.theme}` : ''}</h2>
           {week.game_date && <p className="small muted" style={{ marginTop: -6 }}>{week.game_date}</p>}
+          <p className="small"><Link to={`/tally/${week.id}`}>Weekly tally →</Link></p>
           <div className="round-grid">
             {ROUNDS.map(r => (
               <div key={r.key} className="round-card" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
