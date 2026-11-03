@@ -32,6 +32,10 @@ export default function Admin() {
   const [admins, setAdmins] = useState<any[]>([])
   const [leagueAdmins, setLeagueAdmins] = useState<{ email: string; role: string }[]>([])
   const [adminEmail, setAdminEmail] = useState('')
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([])
+  const [newTeam, setNewTeam] = useState('')
+  const [editingTeam, setEditingTeam] = useState<string | null>(null)
+  const [editTeamName, setEditTeamName] = useState('')
   const [newAdmin, setNewAdmin] = useState('')
   const [seasonStart, setSeasonStart] = useState(() => new Date().toISOString().slice(0, 10))
   const [seasonName, setSeasonName] = useState('')
@@ -108,8 +112,14 @@ export default function Admin() {
     const { data } = await supabase.rpc('list_league_admins', { p_league: activeLeague })
     setLeagueAdmins((data as { email: string; role: string }[]) ?? [])
   }
+  const loadTeams = async () => {
+    if (!activeLeague) { setTeams([]); return }
+    const { data } = await supabase.from('teams').select('id,name').eq('league_id', activeLeague).order('name')
+    setTeams(data ?? [])
+  }
   useEffect(() => { if (session && canManage) { loadLeagues(); loadAdmins() } }, [session, canManage])
   useEffect(() => { if (session && canManage && activeLeague) loadLeagueAdmins() }, [session, canManage, activeLeague])
+  useEffect(() => { if (session && canManage && activeLeague) loadTeams() }, [session, canManage, activeLeague])
   useEffect(() => { if (session && canManage && activeLeague) loadSeasons() }, [session, canManage, activeLeague])
   useEffect(() => { if (session && canManage && activeSeason) load() }, [session, canManage, activeSeason])
 
@@ -213,6 +223,29 @@ export default function Admin() {
     if (error) { alert(error.message); return }
     loadLeagueAdmins()
   }
+  const addTeam = async () => {
+    const name = newTeam.trim()
+    if (!activeLeague || !name) return
+    const { error } = await supabase.from('teams').insert({ name, league_id: activeLeague, sort_order: teams.length })
+    if (error) { alert('Could not add team: ' + error.message); return }
+    setNewTeam('')
+    loadTeams()
+  }
+  const renameTeam = async () => {
+    const name = editTeamName.trim()
+    if (!editingTeam || !name) return
+    const { error } = await supabase.from('teams').update({ name }).eq('id', editingTeam)
+    if (error) { alert('Could not rename team: ' + error.message); return }
+    setEditingTeam(null)
+    setEditTeamName('')
+    loadTeams()
+  }
+  const deleteTeam = async (t: { id: string; name: string }) => {
+    if (!confirm(`Delete team "${t.name}"? Teams that have submitted scorecards can't be deleted.`)) return
+    const { error } = await supabase.from('teams').delete().eq('id', t.id)
+    if (error) { alert('Could not delete team: ' + error.message); return }
+    loadTeams()
+  }
   const signOut = async () => { await supabase.auth.signOut() }
 
   if (!session) {
@@ -298,6 +331,32 @@ export default function Admin() {
           <button onClick={addLeagueAdmin}>Add league admin</button>
         </div>
         <p className="small muted" style={{ marginTop: 8 }}>The person must have signed up already.</p>
+      </div>
+
+      <h2>Teams</h2>
+      <div className="card">
+        {teams.length === 0 && <div className="small muted">No teams yet.</div>}
+        {teams.map(t => editingTeam === t.id ? (
+          <div key={t.id} className="stack-mobile" style={{ padding: '6px 0' }}>
+            <input value={editTeamName} onChange={e => setEditTeamName(e.target.value)} aria-label="team name" />
+            <div className="row" style={{ gap: 8 }}>
+              <button onClick={renameTeam} className="primary">Save</button>
+              <button onClick={() => { setEditingTeam(null); setEditTeamName('') }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          <div key={t.id} className="row" style={{ justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--surface-2)' }}>
+            <span className="small">{t.name}</span>
+            <span className="row" style={{ gap: 8 }}>
+              <button onClick={() => { setEditingTeam(t.id); setEditTeamName(t.name) }}>edit</button>
+              <button onClick={() => deleteTeam(t)}>delete</button>
+            </span>
+          </div>
+        ))}
+        <div className="stack-mobile" style={{ marginTop: 12 }}>
+          <input value={newTeam} onChange={e => setNewTeam(e.target.value)} placeholder="new team name" />
+          <button onClick={addTeam}>Add team</button>
+        </div>
       </div>
 
       <h2>Weeks</h2>
