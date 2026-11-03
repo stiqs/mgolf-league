@@ -7,6 +7,23 @@ Crowd-sourced mini-golf league scorecard PWA. Hosted at `mini-golf.muzoapps.com`
 - Supabase (self-hosted on `supabase.muzoapps.com`): Postgres, Auth (Google OAuth + magic link), Storage `scorecards`, Edge function `parse-scorecard`
 - Image parsing via OpenRouter `google/gemini-3.1-pro-preview` (`OPENROUTER_MODEL` in `/opt/supabase/docker/.env`)
 
+## Environment
+Create `.env.local`:
+```
+VITE_SUPABASE_URL=https://supabase.muzoapps.com
+VITE_SUPABASE_ANON_KEY=<anon key>
+```
+
+## Database
+Apply `schema.sql` then `seed_teams.sql` (or assign teams per league in Admin). Edge function `parse-scorecard` lives at `/opt/supabase/docker/volumes/functions/parse-scorecard/index.ts`; restart `supabase-edge-functions` after edits.
+
+## Using the app
+- Pick a league on Home, then a season/week and round.
+- Upload a photo of the paper scorecard; AI parses rows; correct cells, submit.
+- Share the verify QR with another team on the same card to lock scores.
+- `/tally/:weekId` shows per-team section + total scores.
+- `/cards/:weekId/:round` browses submitted cards.
+
 ## Routes
 - `/` — league directory + hero
 - `/l/:slug` — league landing (weeks, rounds, weekly tally link)
