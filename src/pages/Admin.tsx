@@ -33,7 +33,8 @@ export default function Admin() {
   const [leagueAdmins, setLeagueAdmins] = useState<{ email: string; role: string }[]>([])
   const [adminEmail, setAdminEmail] = useState('')
   const [newAdmin, setNewAdmin] = useState('')
-  const [seasonStart, setSeasonStart] = useState('')
+  const [seasonStart, setSeasonStart] = useState(() => new Date().toISOString().slice(0, 10))
+  const [seasonName, setSeasonName] = useState('')
   const [seasonWeeks, setSeasonWeeks] = useState(8)
 
   useEffect(() => {
@@ -141,17 +142,19 @@ export default function Admin() {
     if (!activeLeague) { alert('Create a league first'); return }
     if (!seasonStart) { alert('Pick a start date'); return }
     const start = new Date(seasonStart + 'T00:00:00Z')
-    const name = monthName(start)
-    const { data: season } = await supabase.from('seasons').insert({
+    const name = seasonName.trim() || monthName(start)
+    const { data: season, error: seasonErr } = await supabase.from('seasons').insert({
       name, league_id: activeLeague, start_date: seasonStart, number_of_weeks: seasonWeeks
     }).select('id').single()
+    if (seasonErr) { alert('Could not create season: ' + seasonErr.message); return }
     if (!season) return
     const rows = Array.from({ length: seasonWeeks }, (_, i) => {
       const d = new Date(start)
       d.setUTCDate(d.getUTCDate() + i * 7)
       return { season_id: season.id, week_no: i + 1, game_date: d.toISOString().slice(0, 10), theme: '' }
     })
-    const { data: createdWeeks } = await supabase.from('weeks').insert(rows).select('id')
+    const { data: createdWeeks, error: weeksErr } = await supabase.from('weeks').insert(rows).select('id')
+    if (weeksErr) { alert('Season created, but weeks failed: ' + weeksErr.message); await loadSeasons(); setActiveSeason(season.id); setSeasonName(''); return }
     if (createdWeeks?.length) {
       const rounds = createdWeeks.flatMap(w => ['aces', 'duffleboard', 'minigolf'].map(type => ({ week_id: w.id, type })))
       const { error: roundsErr } = await supabase.from('mg_rounds').insert(rounds)
@@ -159,6 +162,7 @@ export default function Admin() {
     }
     await loadSeasons()
     setActiveSeason(season.id)
+    setSeasonName('')
   }
   const addWeek = async () => {
     if (!activeSeason) { alert('Select or create a season first'); return }
@@ -265,12 +269,18 @@ export default function Admin() {
       <div className="card">
         <label>Season</label>
         <select value={activeSeason} onChange={e => setActiveSeason(e.target.value)}>
+          {seasons.length === 0 && <option value="">No seasons yet</option>}
           {seasons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <div className="stack-mobile" style={{ marginTop: 12 }}>
-          <input type="date" value={seasonStart} onChange={e => setSeasonStart(e.target.value)} />
-          <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} placeholder="weeks" />
-          <button onClick={createSeason} className="primary">Create season</button>
+        <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--surface-2)' }}>
+          <div className="small muted" style={{ marginBottom: 8 }}>New season</div>
+          <div className="stack-mobile">
+            <input value={seasonName} onChange={e => setSeasonName(e.target.value)}
+              placeholder={seasonStart ? monthName(new Date(seasonStart + 'T00:00:00Z')) : 'name (e.g. Spring 2027)'} />
+            <input type="date" value={seasonStart} onChange={e => setSeasonStart(e.target.value)} />
+            <input type="number" min={1} max={52} value={seasonWeeks} onChange={e => setSeasonWeeks(Number(e.target.value))} placeholder="weeks" />
+            <button onClick={createSeason} className="primary">Create season</button>
+          </div>
         </div>
       </div>
 
