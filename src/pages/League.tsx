@@ -209,7 +209,25 @@ export default function League() {
           <h2>Teams</h2>
           <div className="card">
             <div className="chips">
-              {teams.map(t => <span key={t.id} className="chip" style={{ background: 'var(--surface-2)' }}>{t.name}</span>)}
+              {teams.map(t => {
+                const hue = [...t.name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360
+                const initial = (t.name.trim()[0] ?? '?').toUpperCase()
+                return (
+                  <span key={t.id} className="chip" style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 6,
+                    background: `hsl(${hue} 70% 92%)`, color: `hsl(${hue} 50% 25%)`,
+                    border: `1px solid hsl(${hue} 60% 75%)`, fontWeight: 600
+                  }}>
+                    <span style={{
+                      width: 20, height: 20, borderRadius: '50%',
+                      background: `hsl(${hue} 60% 55%)`, color: '#fff',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: 11, fontWeight: 700
+                    }}>{initial}</span>
+                    {t.name}
+                  </span>
+                )
+              })}
             </div>
           </div>
         </>
