@@ -9,6 +9,7 @@ export default function SeasonTracker() {
   const { seasonId } = useParams()
   const [season, setSeason] = useState<any>(null)
   const [weeks, setWeeks] = useState<any[]>([])
+  const [allWeeks, setAllWeeks] = useState<number>(0)
   const [rows, setRows] = useState<{ team: string; recorded: number; total: number; missing: number[] }[]>([])
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -30,6 +31,7 @@ export default function SeasonTracker() {
         .order('week_no')
       if (cancelled) return
       setWeeks(ws ?? [])
+      setAllWeeks((s.number_of_weeks ?? ws?.length ?? 0))
 
       const recorded: Recorded = {}
       const weekIds = (ws ?? []).map(w => w.id)
@@ -70,32 +72,37 @@ export default function SeasonTracker() {
 
   if (loading) return <main><p>Loading…</p></main>
   if (err) return <main><Header title="Season tracker" back /><p>{err}</p></main>
-  if (!season || !weeks.length) return <main><Header title="Season tracker" back /><p className="muted">No weeks yet.</p></main>
+  if (!season) return <main><Header title="Season tracker" back /><p className="muted">Season not found.</p></main>
 
   return (
     <main>
       <Header title={`Season tracker — ${season.name}`} back />
-      <p className="small muted">{weeks.length} weeks · {season.start_date ? new Date(season.start_date).toLocaleDateString() : ''}</p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {rows.map(r => (
-          <div key={r.team} className="card" style={{ padding: 10 }}>
-            <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.team}</div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
-              <div><div className="muted small">Recorded</div><div style={{ fontWeight: 600 }}>{r.recorded} / {r.total}</div></div>
-              <div><div className="muted small">Missing</div><div style={{ fontWeight: 600 }}>{r.missing.length}</div></div>
-            </div>
-            {r.missing.length ? (
-              <div className="row" style={{ marginTop: 6, gap: 6, flexWrap: 'wrap' }}>
-                {r.missing.map(w => (
-                  <span key={w} className="small muted" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px' }}>W{w}</span>
-                ))}
+      <p className="small muted">
+        {weeks.length} of {allWeeks} weeks played · {season.start_date ? new Date(season.start_date + 'T00:00:00Z').toLocaleDateString('en-US', { timeZone: 'UTC' }) : ''}
+      </p>
+      {weeks.length === 0 && <p className="muted">No played weeks yet.</p>}
+      {weeks.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {rows.map(r => (
+            <div key={r.team} className="card" style={{ padding: 10 }}>
+              <div style={{ fontWeight: 600, marginBottom: 4 }}>{r.team}</div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12 }}>
+                <div><div className="muted small">Recorded</div><div style={{ fontWeight: 600 }}>{r.recorded} / {r.total}</div></div>
+                <div><div className="muted small">Missing</div><div style={{ fontWeight: 600 }}>{r.missing.length}</div></div>
               </div>
-            ) : (
-              <div className="small muted" style={{ marginTop: 6 }}>All weeks recorded</div>
-            )}
-          </div>
-        ))}
-      </div>
+              {r.missing.length ? (
+                <div className="row" style={{ marginTop: 6, gap: 6, flexWrap: 'wrap' }}>
+                  {r.missing.map(w => (
+                    <span key={w} className="small muted" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px' }}>W{w}</span>
+                  ))}
+                </div>
+              ) : (
+                <div className="small muted" style={{ marginTop: 6 }}>All played weeks recorded</div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </main>
   )
 }
