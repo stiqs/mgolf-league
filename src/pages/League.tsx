@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { QRCodeSVG } from 'qrcode.react'
 import Header from '../components/Header'
 
 type Week = { id: string; week_no: number; theme: string | null; game_date: string | null; season_id: string }
@@ -155,6 +156,11 @@ export default function League() {
           </div>
         </div>
       </section>
+      <div className="card" style={{ textAlign: 'center', marginTop: 12 }}>
+        <div className="small muted" style={{ marginBottom: 8 }}>Share this league</div>
+        {league?.slug && <QRCodeSVG value={`${window.location.origin}/l/${league.slug}`} size={140} marginSize={4} />}
+        <div className="small muted" style={{ marginTop: 8 }}>{window.location.origin}/l/{league?.slug}</div>
+      </div>
 
       <p className="muted">
         Pick the round you just played, then select your team, photograph the scorecard, correct any cells the AI misread, and submit. Share the verify QR with another team on the same card to lock the scores.
