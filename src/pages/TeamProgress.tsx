@@ -30,9 +30,10 @@ export default function TeamProgress() {
       const weekIds = played.map(w => w.id)
       const roundIds: string[] = []
       const weekByRound = new Map<string, string>()
+      const roundTypeById = new Map<string, string>()
       if (weekIds.length) {
         const { data: rounds } = await supabase.from('mg_rounds').select('id,week_id,type').in('week_id', weekIds)
-        for (const r of rounds ?? []) { roundIds.push(r.id); weekByRound.set(r.id, r.week_id) }
+        for (const r of rounds ?? []) { roundIds.push(r.id); weekByRound.set(r.id, r.week_id); roundTypeById.set(r.id, r.type) }
       }
       const best = await bestCardsForRounds(roundIds)
       const chosen = [...new Set(best.values())]
@@ -44,7 +45,6 @@ export default function TeamProgress() {
           entriesByCard.get(e.scorecard_id)!.push(e)
         }
       }
-      // best card per round for this team
       const cardByRound = new Map<string, string>()
       for (const [key, cid] of best) {
         const [rid, tid] = key.split(':')
@@ -53,10 +53,6 @@ export default function TeamProgress() {
       const result: { week: number; date: string | null; aces: number | null; duffle: number | null; mini: number | null; total: number }[] = []
       for (const w of played) {
         const rids = roundIds.filter(rid => weekByRound.get(rid) === w.id)
-        const roundTypeById = new Map<string, string>()
-        // need type mapping
-        const { data: rds } = await supabase.from('mg_rounds').select('id,type').in('id', rids)
-        for (const r of rds ?? []) roundTypeById.set(r.id, r.type)
         const vals: Record<string, number | null> = { aces: null, duffleboard: null, minigolf: null }
         for (const rid of rids) {
           const cid = cardByRound.get(rid)
