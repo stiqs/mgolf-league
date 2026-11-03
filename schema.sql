@@ -100,7 +100,7 @@ create policy "anon all seasons" on seasons for all to anon using (true) with ch
 create policy "anon all weeks" on weeks for all to anon using (true) with check (true);
 create policy "anon all mg_rounds" on mg_rounds for all to anon using (true) with check (true);
 create policy "anon all players" on players for all to anon using (true) with check (true);
-create policy "anon all scorecards" on scorecards for all to anon using (true) with check (true);
+create policy "scorecards all" on scorecards for all to anon, authenticated using (true) with check (true);
 create policy "anon all score_entries" on score_entries for all to anon using (true) with check (true);
 create policy "anon all attestations" on attestations for all to anon using (true) with check (true);
 create policy "anon all audit_log" on audit_log for all to anon using (true) with check (true);
@@ -269,5 +269,5 @@ grant execute on function remove_league_admin(uuid, text) to authenticated;
 grant execute on function list_league_admins(uuid) to authenticated;
 
 -- Storage RLS for scorecards bucket (anon upload/read)
-create policy "anon insert scorecards storage" on storage.objects for insert to anon with check (bucket_id = 'scorecards');
-create policy "anon select scorecards storage" on storage.objects for select to anon using (bucket_id = 'scorecards');
+create policy "scorecards storage insert" on storage.objects for insert to anon, authenticated with check (bucket_id = 'scorecards');
+create policy "scorecards storage select" on storage.objects for select to anon, authenticated using (bucket_id = 'scorecards');
