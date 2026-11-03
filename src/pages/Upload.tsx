@@ -27,8 +27,12 @@ export default function Upload() {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   useEffect(() => {
-    supabase.from('teams').select('id,name').order('name').then(({ data }) => setTeams(data ?? []))
-    ensureRound(weekId!, round!).then(r => setRoundId(r.roundId)).catch(e => setStatus(String(e)))
+    ensureRound(weekId!, round!).then(r => {
+      setRoundId(r.roundId)
+      const q = supabase.from('teams').select('id,name').order('name')
+      if (r.leagueId) q.eq('league_id', r.leagueId)
+      return q.then(({ data }) => setTeams(data ?? []))
+    }).catch(e => setStatus(String(e)))
   }, [weekId, round])
   const onFile = (f: File) => {
     const url = URL.createObjectURL(f)

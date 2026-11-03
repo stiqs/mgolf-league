@@ -14,8 +14,15 @@ export default function Verify() {
   const [msg, setMsg] = useState<string>('')
 
   useEffect(() => {
-    supabase.from('teams').select('id,name').order('name').then(({ data }) => setTeams(data ?? []))
-    supabase.from('scorecards').select('*').eq('id', id!).single().then(({ data }) => setCard(data))
+    supabase.from('scorecards')
+      .select('*, mg_rounds(weeks(seasons(league_id)))')
+      .eq('id', id!).single().then(({ data }) => {
+        setCard(data)
+        const leagueId = data?.mg_rounds?.weeks?.seasons?.league_id ?? null
+        const q = supabase.from('teams').select('id,name').order('name')
+        if (leagueId) q.eq('league_id', leagueId)
+        return q.then(({ data: t }) => setTeams(t ?? []))
+      })
     supabase.from('score_entries').select('*').eq('scorecard_id', id!).then(({ data }) => setEntries(data ?? []))
   }, [id])
 
