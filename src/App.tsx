@@ -6,6 +6,7 @@ import Verify from './pages/Verify'
 import Tally from './pages/Tally'
 import Cards from './pages/Cards'
 import SeasonTracker from './pages/SeasonTracker'
+import TeamProgress from './pages/TeamProgress'
 import Admin from './pages/Admin'
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
       <Route path="/tally/:weekId" element={<Tally />} />
       <Route path="/cards/:weekId/:round" element={<Cards />} />
       <Route path="/season-tracker/:seasonId" element={<SeasonTracker />} />
+      <Route path="/team/:teamId/:seasonId" element={<TeamProgress />} />
       <Route path="/verify/:id" element={<Verify />} />
       <Route path="/admin" element={<Admin />} />
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -210,13 +210,13 @@ export default function League() {
           <div className="card">
             <div className="chips">
               {teams.map(t => {
-                const hue = [...t.name].reduce((a, c) => a + c.charCodeAt(0), 0) % 360
+                const hue = [...t.name].reduce((a, c) => (a * 31 + c.charCodeAt(0)) % 360, 7)
                 const initial = (t.name.trim()[0] ?? '?').toUpperCase()
                 return (
-                  <span key={t.id} className="chip" style={{
+                  <Link key={t.id} to={activeSeason ? `/team/${t.id}/${activeSeason}` : '#'} className="chip" style={{
                     display: 'inline-flex', alignItems: 'center', gap: 6,
-                    background: `hsl(${hue} 70% 92%)`, color: `hsl(${hue} 50% 25%)`,
-                    border: `1px solid hsl(${hue} 60% 75%)`, fontWeight: 600
+                    background: `hsl(${hue} 45% 20%)`, color: `hsl(${hue} 70% 82%)`,
+                    border: `1px solid hsl(${hue} 50% 40%)`, fontWeight: 600, textDecoration: 'none'
                   }}>
                     <span style={{
                       width: 20, height: 20, borderRadius: '50%',
@@ -225,7 +225,7 @@ export default function League() {
                       fontSize: 11, fontWeight: 700
                     }}>{initial}</span>
                     {t.name}
-                  </span>
+                  </Link>
                 )
               })}
             </div>
