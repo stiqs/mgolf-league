@@ -25,7 +25,7 @@ Read the card and return ONLY a JSON object:
 }
 Rules:
 - One array entry per team row, in top-to-bottom order.
-- strokes is an integer 0..8, or null if blank/unreadable.
+- strokes is an integer 0..99, or null if blank/unreadable.
 - Use the name exactly as handwritten (do not correct).
 - Count the rows carefully: if there are 3 team rows, return 3 entries. Never drop a row.
 ${teamsHint}`
@@ -48,8 +48,9 @@ Deno.serve(async (req) => {
     headers: { authorization: `Bearer ${apiKey}`, 'content-type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 2_000,
+      max_tokens: 8_192,
       temperature: 0,
+      reasoning: { effort: 'low' },
       messages: [{ role: 'user', content: [
         { type: 'image_url', image_url: { url: image } },
         { type: 'text', text: prompt(teamList) },
